@@ -695,6 +695,30 @@ Thank you for coming back to us John! Let me check this right away..." required 
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
+            <p class="text-xs text-slate-600 leading-relaxed">
+                Copy formatted ticket data to your clipboard for instant 1-click paste into Google Sheets, Excel for Mac, or Numbers.
+            </p>
+            <div class="space-y-2 pt-1">
+                <button onclick="copyTableForGoogleSheets()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs shadow transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-copy"></i>
+                    <span>Copy TSV for Google Sheets (⌘ + V)</span>
+                </button>
+                <a href="https://sheets.new" target="_blank" rel="noopener noreferrer" class="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-semibold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-2 block text-center">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    <span>Open New Google Sheet (sheets.new)</span>
+                </a>
+                <button onclick="exportToCsv()" class="w-full bg-pink-50 hover:bg-pink-100 text-pink-700 border border-pink-200 font-semibold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-file-csv"></i>
+                    <span>Download Raw CSV File</span>
+                </button>
+            </div>
+            <div class="flex justify-end border-t border-pink-100 pt-3">
+                <button onclick="closeSheetsModal()" class="px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-800 font-semibold rounded-xl text-xs">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- GEMINI API KEY CONFIGURATION MODAL -->
     <div id="api-key-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
@@ -742,13 +766,15 @@ Thank you for coming back to us John! Let me check this right away..." required 
     <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
     <script>
-        // State Storage
         let tickets = [];
         let themeChartInstance = null;
         let priorityChartInstance = null;
 
+        // Hardcoded Default Gemini API Key for zero-config GitHub Pages deployment
+        const DEFAULT_API_KEY = "AQ.Ab8RN6IccWcc8c0H3iaVD1sZg3RRjCpAQKX4Et_KJ-uSk5x4ug";
+
         function openApiKeyModal() {
-            const savedKey = localStorage.getItem('gemini_api_key') || '';
+            const savedKey = localStorage.getItem('gemini_api_key') || DEFAULT_API_KEY;
             const keyInput = document.getElementById('input-api-key');
             if (keyInput) keyInput.value = savedKey;
             document.getElementById('api-key-modal')?.classList.remove('hidden');
@@ -1011,12 +1037,7 @@ Thank you for coming back to us John! Let me check this right away..." required 
                 return;
             }
 
-            let apiKey = localStorage.getItem('gemini_api_key') || "";
-            if (!apiKey) {
-                openApiKeyModal();
-                showToast('Please configure your Gemini API Key in top settings to enable AI features on GitHub Pages.', 'API Key Required');
-                return;
-            }
+            let apiKey = localStorage.getItem('gemini_api_key') || DEFAULT_API_KEY;
 
             const btn = document.getElementById('btn-ai-analyze');
             const originalHtml = btn.innerHTML;
@@ -1112,12 +1133,7 @@ ${conversation}`;
             const message = input.value.trim();
             if (!message) return;
 
-            let apiKey = localStorage.getItem('gemini_api_key') || "";
-            if (!apiKey) {
-                openApiKeyModal();
-                showToast('Please configure your Gemini API Key to use the AI Chatbot on GitHub Pages.', 'API Key Required');
-                return;
-            }
+            let apiKey = localStorage.getItem('gemini_api_key') || DEFAULT_API_KEY;
 
             appendChatMessage('user', message);
             input.value = '';
