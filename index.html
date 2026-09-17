@@ -23,6 +23,9 @@
                             800: '#9d174d',
                             900: '#831843',
                         }
+                    },
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"SF Pro Display"', 'Inter', 'sans-serif'],
                     }
                 }
             }
@@ -36,22 +39,24 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <!-- Google Fonts Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <style>
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", sans-serif;
             background-color: #fdf2f8; /* Pink 50 */
+            -webkit-font-smoothing: antialiased;
         }
-        /* Custom Scrollbar */
+        /* Custom Mac Scrollbar */
         ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+            width: 7px;
+            height: 7px;
         }
         ::-webkit-scrollbar-track {
-            background: #fce7f3;
+            background: rgba(252, 231, 243, 0.5);
         }
         ::-webkit-scrollbar-thumb {
             background: #f472b6;
-            border-radius: 4px;
+            border-radius: 999px;
         }
         ::-webkit-scrollbar-thumb:hover {
             background: #db2777;
@@ -72,21 +77,23 @@
 </head>
 <body class="text-slate-800 min-h-screen flex flex-col">
 
-    <!-- Top Navigation Header -->
-    <header class="bg-white border-b border-pink-200 sticky top-0 z-30 shadow-sm">
+    <header class="bg-white border-b border-pink-200 sticky top-0 z-30 shadow-sm backdrop-blur-md bg-white/90">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-pink-500 to-rose-400 flex items-center justify-center text-white shadow-md shadow-pink-200">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-pink-600 to-rose-400 flex items-center justify-center text-white shadow-md shadow-pink-200">
                     <i class="fa-solid font-bold fa-clipboard-check text-xl"></i>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold text-pink-900 leading-tight">QA Ticket Analysis</h1>
+                    <h1 class="text-lg sm:text-xl font-bold text-pink-950 leading-tight flex items-center gap-2">
+                        <span>QA Ticket Analysis</span>
+                        <span class="text-[10px] bg-pink-100 text-pink-800 px-2 py-0.5 rounded-full font-semibold border border-pink-200 hidden sm:inline">Mac Optimized</span>
+                    </h1>
                     <p class="text-xs text-pink-600 font-medium">Co-Quality Analyst Workstation</p>
                 </div>
             </div>
 
             <!-- Stats Header Quick Badges -->
-            <div class="hidden md:flex items-center space-x-3 text-xs font-medium">
+            <div class="hidden lg:flex items-center space-x-3 text-xs font-medium">
                 <span class="px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1.5">
                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                     <span id="stat-green-count">0</span> Fresh (&le;48h)
@@ -103,11 +110,17 @@
 
             <!-- Header Action Buttons -->
             <div class="flex items-center space-x-2">
-                <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-lg text-sm font-semibold shadow transition flex items-center gap-2">
-                    <i class="fa-solid fa-file-excel"></i>
-                    <span>Export XLSX</span>
+                <button onclick="exportToExcel()" title="Export styled Excel workbook" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-semibold shadow transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-file-excel text-sm"></i>
+                    <span class="hidden sm:inline">Export XLSX</span>
                 </button>
-                <button onclick="toggleChatDrawer()" class="bg-pink-600 hover:bg-pink-700 text-white px-3.5 py-2 rounded-lg text-sm font-semibold shadow transition flex items-center gap-2 relative">
+                
+                <button onclick="openSheetsModal()" title="Export or open directly in Google Sheets for Mac" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-table text-emerald-600 text-sm"></i>
+                    <span class="hidden sm:inline">Google Sheets</span>
+                </button>
+
+                <button onclick="toggleChatDrawer()" class="bg-pink-600 hover:bg-pink-700 text-white px-3 py-2 rounded-xl text-xs font-semibold shadow transition flex items-center gap-1.5 relative">
                     <i class="fa-solid fa-robot"></i>
                     <span class="hidden sm:inline">AI Co-Analyst</span>
                     <span class="flex h-2.5 w-2.5 absolute -top-1 -right-1">
@@ -119,130 +132,155 @@
         </div>
     </header>
 
-    <!-- Main Navigation Tabs -->
     <nav class="bg-pink-100/70 border-b border-pink-200 px-4 sm:px-8">
-        <div class="max-w-7xl mx-auto flex space-x-1 sm:space-x-4 overflow-x-auto py-2">
-            <button onclick="switchTab('analyze')" id="tab-btn-analyze" class="px-4 py-2 text-sm font-semibold rounded-lg text-pink-700 hover:bg-pink-200/60 transition flex items-center gap-2 whitespace-nowrap active-tab bg-white text-pink-700 shadow-sm border border-pink-200">
-                <i class="fa-solid fa-magnifying-glass-chart"></i>
+        <div class="max-w-7xl mx-auto flex space-x-1 sm:space-x-3 overflow-x-auto py-2 scrollbar-none">
+            <button onclick="switchTab('analyze')" id="tab-btn-analyze" class="px-4 py-2 text-xs font-semibold rounded-xl text-pink-700 hover:bg-pink-200/60 transition flex items-center gap-2 whitespace-nowrap bg-white text-pink-800 shadow-sm border border-pink-200">
+                <i class="fa-solid fa-wand-magic-sparkles text-pink-500"></i>
                 <span>Add & Analyze Ticket</span>
             </button>
-            <button onclick="switchTab('list')" id="tab-btn-list" class="px-4 py-2 text-sm font-semibold rounded-lg text-pink-700 hover:bg-pink-200/60 transition flex items-center gap-2 whitespace-nowrap">
+            <button onclick="switchTab('list')" id="tab-btn-list" class="px-4 py-2 text-xs font-semibold rounded-xl text-pink-700 hover:bg-pink-200/60 transition flex items-center gap-2 whitespace-nowrap">
                 <i class="fa-solid fa-list-check"></i>
                 <span>All Tickets List</span>
-                <span id="badge-total-tickets" class="bg-pink-200 text-pink-800 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+                <span id="badge-total-tickets" class="bg-pink-200 text-pink-800 text-[10px] px-2 py-0.5 rounded-full font-bold">0</span>
             </button>
-            <button onclick="switchTab('grouped')" id="tab-btn-grouped" class="px-4 py-2 text-sm font-semibold rounded-lg text-pink-700 hover:bg-pink-200/60 transition flex items-center gap-2 whitespace-nowrap">
+            <button onclick="switchTab('grouped')" id="tab-btn-grouped" class="px-4 py-2 text-xs font-semibold rounded-xl text-pink-700 hover:bg-pink-200/60 transition flex items-center gap-2 whitespace-nowrap">
                 <i class="fa-solid fa-users-gear"></i>
                 <span>Grouped by Assignee</span>
             </button>
-            <button onclick="switchTab('analytics')" id="tab-btn-analytics" class="px-4 py-2 text-sm font-semibold rounded-lg text-pink-700 hover:bg-pink-200/60 transition flex items-center gap-2 whitespace-nowrap">
+            <button onclick="switchTab('analytics')" id="tab-btn-analytics" class="px-4 py-2 text-xs font-semibold rounded-xl text-pink-700 hover:bg-pink-200/60 transition flex items-center gap-2 whitespace-nowrap">
                 <i class="fa-solid fa-chart-pie"></i>
                 <span>QA Themes & Analytics</span>
+            </button>
+            <button onclick="switchTab('sop')" id="tab-btn-sop" class="px-4 py-2 text-xs font-semibold rounded-xl text-pink-700 hover:bg-pink-200/60 transition flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-book-bookmark"></i>
+                <span>QA SOP & Rubric 3.3 Guide</span>
             </button>
         </div>
     </nav>
 
-    <!-- Main Content Container -->
     <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
 
         <!-- TAB 1: ADD & ANALYZE TICKET FORM -->
         <section id="view-analyze" class="space-y-6">
             <div class="bg-white rounded-2xl shadow-sm border border-pink-200 p-6">
-                <div class="flex items-center justify-between pb-4 border-b border-pink-100 mb-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-pink-100 mb-6 gap-3">
                     <div>
-                        <h2 class="text-lg font-bold text-pink-950 flex items-center gap-2">
-                            <i class="fa-solid fa-wand-magic-sparkles text-pink-500"></i>
-                            QA Ticket Analyzer & AI Co-Analyst
+                        <h2 class="text-base font-bold text-pink-950 flex items-center gap-2">
+                            <i class="fa-solid fa-clipboard-question text-pink-600"></i>
+                            Paste Zendesk Ticket Information & Conversation
                         </h2>
-                        <p class="text-xs text-slate-500">Paste conversation, ticket details, or email threads. Your AI Co-Analyst will evaluate what was missed, recommendations, QA Theme, and notes.</p>
+                        <p class="text-xs text-slate-500">Paste your Zendesk chat/email thread below. Assignee, Customer, Requested Date, and Updated Date will auto-populate!</p>
                     </div>
-                    <button onclick="fillSampleData()" class="text-xs bg-pink-50 text-pink-700 hover:bg-pink-100 px-3 py-1.5 rounded-lg border border-pink-200 font-semibold transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-lightbulb text-amber-500"></i> Load Sample Ticket
-                    </button>
+                    <div class="flex items-center space-x-2">
+                        <button type="button" onclick="clearFormInputs()" class="text-xs bg-pink-50 text-pink-700 hover:bg-pink-100 px-3 py-1.5 rounded-xl border border-pink-200 font-semibold transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-eraser text-pink-500"></i> Clear Form
+                        </button>
+                    </div>
                 </div>
 
                 <form id="qa-input-form" onsubmit="handleTicketSubmit(event)" class="space-y-5">
-                    <!-- Top Fields Row -->
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Ticket ID <span class="text-pink-500">*</span></label>
-                            <input type="text" id="input-id" placeholder="e.g. TCK-8492" required class="w-full px-3 py-2 text-sm border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-pink-50/30">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Assignee / Agent Name</label>
-                            <input type="text" id="input-assignee" placeholder="e.g. Sarah Jenkins" class="w-full px-3 py-2 text-sm border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-pink-50/30">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Requester / Customer Name</label>
-                            <input type="text" id="input-requester" placeholder="e.g. John Doe (Acme Corp)" class="w-full px-3 py-2 text-sm border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-pink-50/30">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Priority</label>
-                            <select id="input-priority" class="w-full px-3 py-2 text-sm border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-pink-50/30">
-                                <option value="Low">Low</option>
-                                <option value="Medium" selected>Medium</option>
-                                <option value="High">High</option>
-                                <option value="Urgent">Urgent</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Short Description Box (Required as per prompt) -->
+                    
+                    <!-- Short Description Box (Subject) -->
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">
-                            Short Description / Subject <span class="text-pink-500">*</span>
+                        <label class="block text-xs font-semibold text-slate-800 mb-1 flex justify-between items-center">
+                            <span>Short Description / Ticket Subject <span class="text-pink-500">*</span></span>
+                            <span class="text-[11px] text-pink-600 font-normal">e.g., 123456 - Unable to view shifts in portal</span>
                         </label>
-                        <input type="text" id="input-subject" placeholder="Brief summary of the customer issue..." required class="w-full px-3.5 py-2.5 text-sm border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-pink-50/20 font-medium">
+                        <input type="text" id="input-subject" placeholder="Enter brief issue summary or Zendesk subject line..." required class="w-full px-3.5 py-2.5 text-sm border border-pink-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 bg-pink-50/20 font-medium text-slate-800">
                     </div>
 
-                    <!-- Ticket Conversation / Information Box (Required separate box) -->
+                    <!-- Ticket Conversation / Information Box -->
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1 flex justify-between items-center">
-                            <span>Ticket Information / Conversation Thread / Interaction Details <span class="text-pink-500">*</span></span>
-                            <span class="text-pink-600 font-normal">Full context helps AI perform thorough QA</span>
-                        </label>
-                        <textarea id="input-conversation" rows="5" placeholder="Paste full email thread, chat transcript, phone call logs, or ticket history here..." required class="w-full p-3.5 text-sm border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-pink-50/20 font-mono text-xs leading-relaxed"></textarea>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-xs font-semibold text-slate-800">
+                                Ticket Information & Full Conversation Thread <span class="text-pink-500">*</span>
+                            </label>
+                            <span id="auto-parse-badge" class="text-[11px] bg-pink-100 text-pink-800 font-semibold px-2 py-0.5 rounded-full border border-pink-200 transition opacity-0">
+                                <i class="fa-solid fa-bolt mr-1"></i> Auto-Parsed Details!
+                            </span>
+                        </div>
+                        <textarea id="input-conversation" rows="6" oninput="parseConversationOnInput()" placeholder="Paste full Zendesk conversation thread here...
+
+Example format:
+John Doe, June 29 2026 08:00
+Hi team, I am having trouble accessing my shift roster.
+
+Sarah Jenkins, June 29 2026 10:00
+Thank you for coming back to us John! Let me check this right away..." required class="w-full p-3.5 text-xs border border-pink-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 bg-pink-50/20 font-mono leading-relaxed text-slate-800"></textarea>
                     </div>
 
-                    <!-- Dates & SLA Timestamps -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-pink-50/60 p-4 rounded-xl border border-pink-200">
-                        <div>
-                            <label class="block text-xs font-semibold text-pink-900 mb-1">Requested Date (Date Opened)</label>
-                            <input type="datetime-local" id="input-requested" class="w-full px-3 py-2 text-sm border border-pink-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white">
+                    <!-- Auto-Populated Top Metadata Fields Row -->
+                    <div class="p-4 bg-pink-50/50 rounded-2xl border border-pink-200 space-y-3">
+                        <div class="flex items-center justify-between text-xs font-bold text-pink-900 border-b border-pink-200/60 pb-2">
+                            <span class="flex items-center gap-1.5">
+                                <i class="fa-solid fa-user-gear text-pink-600"></i>
+                                Ticket Metadata & SLA Timestamps
+                            </span>
+                            <span class="text-[11px] font-normal text-slate-500">Auto-extracted from pasted thread or AI</span>
                         </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-pink-900 mb-1">Updated Date (Date Last Update)</label>
-                            <input type="datetime-local" id="input-updated" class="w-full px-3 py-2 text-sm border border-pink-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white">
+
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Ticket ID <span class="text-pink-500">*</span></label>
+                                <input type="text" id="input-id" placeholder="e.g. TCK-8492" required class="w-full px-3 py-2 text-xs border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white font-semibold">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Assignee / Agent Name</label>
+                                <input type="text" id="input-assignee" placeholder="e.g. Sarah Jenkins" class="w-full px-3 py-2 text-xs border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white font-medium">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Requester / Customer Name</label>
+                                <input type="text" id="input-requester" placeholder="e.g. John Doe" class="w-full px-3 py-2 text-xs border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white font-medium">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Priority</label>
+                                <select id="input-priority" class="w-full px-3 py-2 text-xs border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white font-medium">
+                                    <option value="Low">Low</option>
+                                    <option value="Medium" selected>Medium</option>
+                                    <option value="High">High</option>
+                                    <option value="Urgent">Urgent</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                            <div>
+                                <label class="block text-xs font-semibold text-pink-900 mb-1">Requested Date (Date Opened)</label>
+                                <input type="datetime-local" id="input-requested" class="w-full px-3 py-2 text-xs border border-pink-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white font-mono">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-pink-900 mb-1">Updated Date (Date Last Update)</label>
+                                <input type="datetime-local" id="input-updated" class="w-full px-3 py-2 text-xs border border-pink-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white font-mono">
+                            </div>
                         </div>
                     </div>
 
                     <!-- AI Trigger Button Bar -->
                     <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
-                        <button type="button" onclick="runAiAnalysis()" id="btn-ai-analyze" class="w-full sm:w-auto bg-gradient-to-r from-pink-600 to-rose-500 hover:from-pink-700 hover:to-rose-600 text-white font-semibold px-6 py-2.5 rounded-xl text-sm shadow-md shadow-pink-200 transition flex items-center justify-center gap-2">
+                        <button type="button" onclick="runAiAnalysis()" id="btn-ai-analyze" class="w-full sm:w-auto bg-gradient-to-r from-pink-600 to-rose-500 hover:from-pink-700 hover:to-rose-600 text-white font-bold px-6 py-2.5 rounded-xl text-xs shadow-md shadow-pink-200 transition flex items-center justify-center gap-2">
                             <i class="fa-solid fa-microchip"></i>
-                            <span>🤖 Auto-Fill with AI Co-Analyst</span>
+                            <span>🤖 Auto-Fill Findings with AI Co-Analyst</span>
                         </button>
-                        <span class="text-xs text-slate-400 hidden sm:inline">or manually fill the QA fields below:</span>
+                        <span class="text-xs text-slate-400 hidden sm:inline">or manually fill the QA findings below:</span>
                     </div>
 
-                    <!-- QA Findings Section (Populated by AI or Manual) -->
                     <div class="border-t border-pink-200 pt-5 mt-4 space-y-4">
-                        <h3 class="text-sm font-bold text-pink-900 flex items-center gap-2">
+                        <h3 class="text-xs font-bold text-pink-950 uppercase tracking-wider flex items-center gap-2">
                             <i class="fa-solid fa-list-check text-pink-600"></i>
-                            QA Evaluation & Findings (Co-Analyst Input)
+                            QA Evaluation & Findings (Rubric 3.3 Benchmark)
                         </h3>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <!-- What was missed -->
                             <div>
-                                <label class="block text-xs font-semibold text-red-700 mb-1">What was missed?</label>
-                                <textarea id="input-missed" rows="3" placeholder="Specify process gaps, unaddressed questions, policy violations, or missed steps..." class="w-full p-3 text-sm border border-red-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 bg-red-50/20"></textarea>
+                                <label class="block text-xs font-semibold text-red-700 mb-1">What was missed? (Processes, Gaps, Non-Negotiables ⚑)</label>
+                                <textarea id="input-missed" rows="3" placeholder="Specify process gaps, unaddressed questions, rubric non-negotiables, or missed steps..." class="w-full p-3 text-xs border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400 bg-red-50/20 text-slate-800"></textarea>
                             </div>
 
                             <!-- What should have been done -->
                             <div>
-                                <label class="block text-xs font-semibold text-emerald-700 mb-1">What should have been done?</label>
-                                <textarea id="input-should-done" rows="3" placeholder="Define correct troubleshooting steps, ideal resolution pathway, or proper response..." class="w-full p-3 text-sm border border-emerald-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-emerald-50/20"></textarea>
+                                <label class="block text-xs font-semibold text-emerald-700 mb-1">What should have been done? (Ideal Standard)</label>
+                                <textarea id="input-should-done" rows="3" placeholder="Define correct troubleshooting steps, ideal communication, or proper workflow macro..." class="w-full p-3 text-xs border border-emerald-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-emerald-50/20 text-slate-800"></textarea>
                             </div>
                         </div>
 
@@ -250,7 +288,7 @@
                             <!-- QA Theme -->
                             <div>
                                 <label class="block text-xs font-semibold text-pink-900 mb-1">QA Theme / Category</label>
-                                <select id="input-theme" class="w-full px-3 py-2 text-sm border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white">
+                                <select id="input-theme" class="w-full px-3 py-2 text-xs border border-pink-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white font-medium text-slate-800">
                                     <option value="Escalation & SLA">Escalation & SLA</option>
                                     <option value="Product Knowledge">Product Knowledge</option>
                                     <option value="Soft Skills & Tone">Soft Skills & Tone</option>
@@ -258,6 +296,7 @@
                                     <option value="Verification & Security">Verification & Security</option>
                                     <option value="First Contact Resolution">First Contact Resolution</option>
                                     <option value="Proper Documentation">Proper Documentation</option>
+                                    <option value="Process Adherence">Process Adherence</option>
                                     <option value="Perfect Handling">Perfect Handling / No Error</option>
                                 </select>
                             </div>
@@ -265,14 +304,14 @@
                             <!-- QA Notes -->
                             <div class="md:col-span-2">
                                 <label class="block text-xs font-semibold text-pink-900 mb-1">QA Notes & Coaching Tips</label>
-                                <input type="text" id="input-notes" placeholder="Constructive feedback, positive callouts, or coaching notes for agent one-on-one..." class="w-full px-3.5 py-2 text-sm border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white">
+                                <input type="text" id="input-notes" placeholder="Constructive feedback, callouts, QIN notes, or coaching tips for agent 1-on-1..." class="w-full px-3.5 py-2 text-xs border border-pink-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white text-slate-800">
                             </div>
                         </div>
                     </div>
 
                     <!-- Submit Button -->
                     <div class="pt-4 flex justify-end">
-                        <button type="submit" class="bg-pink-700 hover:bg-pink-800 text-white font-bold px-8 py-3 rounded-xl shadow-lg shadow-pink-200 transition flex items-center gap-2">
+                        <button type="submit" class="bg-pink-700 hover:bg-pink-800 text-white font-bold px-8 py-3 rounded-xl shadow-lg shadow-pink-200 transition flex items-center gap-2 text-xs">
                             <i class="fa-solid fa-plus-circle"></i>
                             <span>Save Ticket to Analysis List</span>
                         </button>
@@ -281,18 +320,17 @@
             </div>
         </section>
 
-        <!-- TAB 2: TICKETS LIST TABLE -->
         <section id="view-list" class="space-y-4 hidden">
             <!-- Filter & Search Controls Header -->
             <div class="bg-white p-4 rounded-2xl border border-pink-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
                 <div class="relative w-full md:w-96">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-pink-400 text-sm"></i>
-                    <input type="text" id="search-filter" oninput="renderTicketTable()" placeholder="Search ID, Subject, Assignee, QA Theme..." class="w-full pl-10 pr-4 py-2 text-sm border border-pink-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 bg-pink-50/20">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-pink-400 text-xs"></i>
+                    <input type="text" id="search-filter" oninput="renderTicketTable()" placeholder="Search ID, Subject, Assignee, QA Theme..." class="w-full pl-9 pr-4 py-2 text-xs border border-pink-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 bg-pink-50/20">
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2 w-full md:w-auto text-xs font-semibold">
                     <!-- Status Filter -->
-                    <select id="status-color-filter" onchange="renderTicketTable()" class="px-3 py-2 border border-pink-200 rounded-xl bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-pink-500">
+                    <select id="status-color-filter" onchange="renderTicketTable()" class="px-3 py-2 border border-pink-200 rounded-xl bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-pink-500 text-xs">
                         <option value="ALL">All SLA Colors</option>
                         <option value="GREEN">Green (&le; 48 hrs)</option>
                         <option value="YELLOW">Yellow (&gt; 48-96 hrs)</option>
@@ -300,12 +338,15 @@
                     </select>
 
                     <!-- Theme Filter -->
-                    <select id="theme-filter" onchange="renderTicketTable()" class="px-3 py-2 border border-pink-200 rounded-xl bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-pink-500">
+                    <select id="theme-filter" onchange="renderTicketTable()" class="px-3 py-2 border border-pink-200 rounded-xl bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-pink-500 text-xs">
                         <option value="ALL">All QA Themes</option>
                     </select>
 
-                    <button onclick="resetFilters()" class="text-pink-600 hover:text-pink-800 px-3 py-2 rounded-xl bg-pink-50 border border-pink-200 transition">
+                    <button onclick="resetFilters()" class="text-pink-600 hover:text-pink-800 px-3 py-2 rounded-xl bg-pink-50 border border-pink-200 transition text-xs">
                         Reset Filters
+                    </button>
+                    <button onclick="clearAllTickets()" class="text-rose-600 hover:text-rose-800 px-3 py-2 rounded-xl bg-rose-50 border border-rose-200 transition text-xs">
+                        <i class="fa-solid fa-trash-can mr-1"></i> Clear All Data
                     </button>
                 </div>
             </div>
@@ -315,7 +356,7 @@
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse text-xs">
                         <thead>
-                            <tr class="bg-gradient-to-r from-pink-800 to-pink-900 text-white font-bold uppercase tracking-wider text-[11px] divide-x divide-pink-700">
+                            <tr class="bg-gradient-to-r from-pink-800 to-pink-900 text-white font-bold uppercase tracking-wider text-[10px] divide-x divide-pink-700">
                                 <th class="p-3">ID</th>
                                 <th class="p-3 min-w-[160px]">Subject</th>
                                 <th class="p-3">Requester</th>
@@ -338,21 +379,20 @@
                     </table>
                 </div>
                 <!-- Empty State Placeholder -->
-                <div id="table-empty-state" class="hidden p-12 text-center space-y-3">
+                <div id="table-empty-state" class="p-12 text-center space-y-3">
                     <div class="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto text-pink-500 text-2xl">
                         <i class="fa-solid fa-folder-open"></i>
                     </div>
-                    <p class="text-sm font-semibold text-pink-900">No QA Tickets found</p>
-                    <p class="text-xs text-slate-500">Try adjusting your filter search or add a new ticket to analyze.</p>
+                    <p class="text-xs font-bold text-pink-950">No QA Tickets found</p>
+                    <p class="text-xs text-slate-500">Paste a Zendesk ticket thread to begin your first QA evaluation.</p>
                 </div>
             </div>
         </section>
 
-        <!-- TAB 3: GROUPED BY ASSIGNEE VIEW -->
         <section id="view-grouped" class="space-y-6 hidden">
             <div class="flex items-center justify-between">
                 <div>
-                    <h2 class="text-lg font-bold text-pink-950">Assignee Performance & QA Grouping</h2>
+                    <h2 class="text-base font-bold text-pink-950">Assignee Performance & QA Grouping</h2>
                     <p class="text-xs text-slate-500">Grouped tickets and coaching evaluation per team member.</p>
                 </div>
             </div>
@@ -363,7 +403,6 @@
             </div>
         </section>
 
-        <!-- TAB 4: QA THEMES & ANALYTICS -->
         <section id="view-analytics" class="space-y-6 hidden">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="bg-white p-5 rounded-2xl border border-pink-200 shadow-sm flex items-center space-x-4">
@@ -371,7 +410,7 @@
                         <i class="fa-solid fa-ticket"></i>
                     </div>
                     <div>
-                        <p class="text-xs text-slate-500 font-semibold uppercase">Total Evaluated</p>
+                        <p class="text-[10px] text-slate-500 font-semibold uppercase">Total Evaluated</p>
                         <h3 id="analytics-total" class="text-2xl font-black text-pink-950">0</h3>
                     </div>
                 </div>
@@ -381,7 +420,7 @@
                         <i class="fa-solid fa-circle-check"></i>
                     </div>
                     <div>
-                        <p class="text-xs text-slate-500 font-semibold uppercase">&le;48h Fresh SLA</p>
+                        <p class="text-[10px] text-slate-500 font-semibold uppercase">&le;48h Fresh SLA</p>
                         <h3 id="analytics-green" class="text-2xl font-black text-emerald-600">0</h3>
                     </div>
                 </div>
@@ -391,7 +430,7 @@
                         <i class="fa-solid fa-clock-rotate-left"></i>
                     </div>
                     <div>
-                        <p class="text-xs text-slate-500 font-semibold uppercase">&gt;48h-96h Stale</p>
+                        <p class="text-[10px] text-slate-500 font-semibold uppercase">&gt;48h-96h Stale</p>
                         <h3 id="analytics-yellow" class="text-2xl font-black text-amber-600">0</h3>
                     </div>
                 </div>
@@ -401,7 +440,7 @@
                         <i class="fa-solid fa-triangle-exclamation"></i>
                     </div>
                     <div>
-                        <p class="text-xs text-slate-500 font-semibold uppercase">&gt;96h Critical Overdue</p>
+                        <p class="text-[10px] text-slate-500 font-semibold uppercase">&gt;96h Critical Overdue</p>
                         <h3 id="analytics-red" class="text-2xl font-black text-rose-600">0</h3>
                     </div>
                 </div>
@@ -411,7 +450,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- Theme Breakdown Chart -->
                 <div class="bg-white p-6 rounded-2xl border border-pink-200 shadow-sm">
-                    <h3 class="text-sm font-bold text-pink-900 mb-4 flex items-center gap-2">
+                    <h3 class="text-xs font-bold text-pink-900 mb-4 flex items-center gap-2">
                         <i class="fa-solid fa-chart-pie text-pink-500"></i> QA Missed Themes Breakdown
                     </h3>
                     <div class="relative h-64">
@@ -421,7 +460,7 @@
 
                 <!-- Priority vs SLA Status Chart -->
                 <div class="bg-white p-6 rounded-2xl border border-pink-200 shadow-sm">
-                    <h3 class="text-sm font-bold text-pink-900 mb-4 flex items-center gap-2">
+                    <h3 class="text-xs font-bold text-pink-900 mb-4 flex items-center gap-2">
                         <i class="fa-solid fa-chart-bar text-pink-500"></i> SLA Aging by Priority
                     </h3>
                     <div class="relative h-64">
@@ -431,18 +470,177 @@
             </div>
         </section>
 
+        <section id="view-sop" class="space-y-6 hidden">
+            <div class="bg-white p-6 rounded-2xl border border-pink-200 shadow-sm space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-pink-100 pb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-pink-950 flex items-center gap-2">
+                            <i class="fa-solid fa-book-open-reader text-pink-600"></i>
+                            Zendesk QA Rubric 3.3 — Support Quality Framework (Guide Only)
+                        </h2>
+                        <p class="text-xs text-slate-500">Qualitative evaluation reference & coaching guide. Used by AI Co-Analyst for automated auditing & feedback.</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="resetSopToDefault()" class="px-3 py-1.5 text-xs bg-pink-50 text-pink-700 hover:bg-pink-100 rounded-xl border border-pink-200 font-semibold transition">
+                            Reset to Rubric 3.3 Default
+                        </button>
+                        <button onclick="saveCustomSop()" class="px-4 py-1.5 text-xs bg-pink-600 hover:bg-pink-700 text-white rounded-xl font-bold shadow transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-floppy-disk"></i> Save Active SOP
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SOP Interactive Navigation Sub-Tabs -->
+                <div class="flex space-x-2 border-b border-pink-100 pb-2 text-xs font-semibold overflow-x-auto">
+                    <button onclick="switchSopSubTab('categories')" id="sop-subtab-categories" class="px-3 py-1.5 rounded-xl bg-pink-600 text-white shadow-sm">9 Evaluation Categories</button>
+                    <button onclick="switchSopSubTab('nonnegotiables')" id="sop-subtab-nonnegotiables" class="px-3 py-1.5 rounded-xl text-pink-700 hover:bg-pink-100">Non-Negotiables (⚑ & ⚠)</button>
+                    <button onclick="switchSopSubTab('guidelines')" id="sop-subtab-guidelines" class="px-3 py-1.5 rounded-xl text-pink-700 hover:bg-pink-100">Communication Rules</button>
+                    <button onclick="switchSopSubTab('quin')" id="sop-subtab-quin" class="px-3 py-1.5 rounded-xl text-pink-700 hover:bg-pink-100">QIN & Dispute Process</button>
+                    <button onclick="switchSopSubTab('editor')" id="sop-subtab-editor" class="px-3 py-1.5 rounded-xl text-pink-700 hover:bg-pink-100">Edit SOP Prompt Text</button>
+                </div>
+
+                <!-- SUBTAB 1: 9 CATEGORIES REFERENCE -->
+                <div id="sop-content-categories" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                        <div class="p-3.5 bg-pink-50/50 rounded-xl border border-pink-200 space-y-1">
+                            <span class="font-bold text-pink-900 block">1. Problem Understanding & Relevance</span>
+                            <p class="text-slate-600 leading-relaxed">Deep understanding including context, urgency, and user type (Associate/Manager/Internal). Anticipate actual needs.</p>
+                        </div>
+                        <div class="p-3.5 bg-pink-50/50 rounded-xl border border-pink-200 space-y-1">
+                            <span class="font-bold text-pink-900 block">2. Completeness & Resolution Ownership</span>
+                            <p class="text-slate-600 leading-relaxed">All questions answered with clear next steps. Full ownership taken. Propose a call after 5 touches without progress.</p>
+                        </div>
+                        <div class="p-3.5 bg-pink-50/50 rounded-xl border border-pink-200 space-y-1">
+                            <span class="font-bold text-pink-900 block">3. Accuracy & Product Knowledge</span>
+                            <p class="text-slate-600 leading-relaxed">Information correct and aligned with product behavior. Explains clearly without exposing internal system jargon.</p>
+                        </div>
+                        <div class="p-3.5 bg-pink-50/50 rounded-xl border border-pink-200 space-y-1">
+                            <span class="font-bold text-pink-900 block">4. Troubleshooting Quality & Depth</span>
+                            <p class="text-slate-600 leading-relaxed">Proper investigation before escalating. Never rely solely on AI or assumptions. Include logs, links, screenshots, reproduction steps.</p>
+                        </div>
+                        <div class="p-3.5 bg-pink-50/50 rounded-xl border border-pink-200 space-y-1">
+                            <span class="font-bold text-pink-900 block">5. Meaningful Communication</span>
+                            <p class="text-slate-600 leading-relaxed">No empty responses. Before closing, must include a genuine, specific check-in referencing actual issue.</p>
+                        </div>
+                        <div class="p-3.5 bg-pink-50/50 rounded-xl border border-pink-200 space-y-1">
+                            <span class="font-bold text-pink-900 block">6. Structure, Tone & Clarity</span>
+                            <p class="text-slate-600 leading-relaxed">Short paragraphs, blank line before signature every time, acknowledge patience if user waited.</p>
+                        </div>
+                        <div class="p-3.5 bg-pink-50/50 rounded-xl border border-pink-200 space-y-1">
+                            <span class="font-bold text-pink-900 block">7. Jira Reporting Quality</span>
+                            <p class="text-slate-600 leading-relaxed">Bug/FR filed correctly with full repro steps & evidence. Internal notes match Jira. (N/A if no Jira filed).</p>
+                        </div>
+                        <div class="p-3.5 bg-pink-50/50 rounded-xl border border-pink-200 space-y-1">
+                            <span class="font-bold text-pink-900 block">8. Internal Notes Quality</span>
+                            <p class="text-slate-600 leading-relaxed">Required structure: Issue Description / WW Item & Links / Troubleshooting & Actions / Next Actions / Docs Used. Link Engineering follow-ups.</p>
+                        </div>
+                        <div class="p-3.5 bg-pink-50/50 rounded-xl border border-pink-200 space-y-1">
+                            <span class="font-bold text-pink-900 block">9. Process Adherence & Operational Excellence</span>
+                            <p class="text-slate-600 leading-relaxed">Never share OTP/credentials outside standard flow. Correct Stop-The-Clock macro based on who filed (EP vs Client). Correct subject format: <code>123456 - Subject</code></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUBTAB 2: NON-NEGOTIABLES & WARNING FLAGS -->
+                <div id="sop-content-nonnegotiables" class="space-y-4 hidden text-xs">
+                    <div class="p-4 bg-rose-50 border border-rose-200 rounded-xl space-y-2">
+                        <h4 class="font-bold text-rose-900 flex items-center gap-2">
+                            <i class="fa-solid fa-flag text-rose-600"></i> Non-Negotiables (⚑ Critical Red Flags)
+                        </h4>
+                        <ul class="grid grid-cols-1 md:grid-cols-2 gap-2 text-rose-900 font-medium">
+                            <li class="flex items-start gap-1.5"><span class="text-rose-600">⚑</span> Generic or irrelevant responses ignoring user query</li>
+                            <li class="flex items-start gap-1.5"><span class="text-rose-600">⚑</span> No troubleshooting before filing Jira</li>
+                            <li class="flex items-start gap-1.5"><span class="text-rose-600">⚑</span> Misuse of macros (check-in macro instead of real reply)</li>
+                            <li class="flex items-start gap-1.5"><span class="text-rose-600">⚑</span> Ignoring user questions</li>
+                            <li class="flex items-start gap-1.5"><span class="text-rose-600">⚑</span> Poor/missing internal notes</li>
+                            <li class="flex items-start gap-1.5"><span class="text-rose-600">⚑</span> Incorrect or misleading info provided</li>
+                            <li class="flex items-start gap-1.5"><span class="text-rose-600">⚑</span> No patience acknowledgement after delay</li>
+                            <li class="flex items-start gap-1.5"><span class="text-rose-600">⚑</span> Requester not updated to actual client on EP-filed ticket</li>
+                            <li class="flex items-start gap-1.5"><span class="text-rose-600">⚑</span> Wall of text / missing blank line before signature</li>
+                            <li class="flex items-start gap-1.5"><span class="text-rose-600">⚑</span> Generic closing check-in without actual issue reference</li>
+                            <li class="flex items-start gap-1.5"><span class="text-rose-600">⚑</span> Replied without reading full history on handed-over ticket</li>
+                            <li class="flex items-start gap-1.5"><span class="text-rose-600">⚑</span> OTP or credential shared via call/chat/channel (CRITICAL)</li>
+                            <li class="flex items-start gap-1.5"><span class="text-rose-600">⚑</span> Engineering follow-up not linked back via internal note</li>
+                        </ul>
+                    </div>
+
+                    <div class="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
+                        <h4 class="font-bold text-amber-900 flex items-center gap-2">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> Quality Warnings (⚠ Secondary Flags)
+                        </h4>
+                        <ul class="grid grid-cols-1 md:grid-cols-2 gap-2 text-amber-900 font-medium">
+                            <li class="flex items-start gap-1.5"><span class="text-amber-600">⚠</span> Direct reference to FullStory or internal monitoring tools</li>
+                            <li class="flex items-start gap-1.5"><span class="text-amber-600">⚠</span> Unredacted internal tools/links visible in shared screenshots</li>
+                            <li class="flex items-start gap-1.5"><span class="text-amber-600">⚠</span> Used word "bug" instead of "issue" or "unexpected behaviour"</li>
+                            <li class="flex items-start gap-1.5"><span class="text-amber-600">⚠</span> Wrong stop-the-clock macro used on EP-filed tickets</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- SUBTAB 3: GUIDELINES -->
+                <div id="sop-content-guidelines" class="space-y-4 hidden text-xs">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="p-4 bg-pink-50/60 rounded-xl border border-pink-200 space-y-2">
+                            <h4 class="font-bold text-pink-950">Key Communication Directives</h4>
+                            <ul class="list-disc list-inside space-y-1 text-slate-700 leading-relaxed">
+                                <li><strong>Empower, don't do it for them:</strong> Guide clients with instructions.</li>
+                                <li><strong>Match greeting to stage:</strong> No "Thank you for reaching out" on follow-ups! Use "Thank you for the update".</li>
+                                <li><strong>Always use client's first name:</strong> Never use "Hi there".</li>
+                                <li><strong>Acknowledge before moving forward:</strong> "Thank you for sharing that" before next steps.</li>
+                                <li><strong>Soften deletion language:</strong> Use "removed" or "no longer visible", never "deleted".</li>
+                            </ul>
+                        </div>
+
+                        <div class="p-4 bg-pink-50/60 rounded-xl border border-pink-200 space-y-2">
+                            <h4 class="font-bold text-pink-950">Stop-the-Clock Macro Guidelines</h4>
+                            <p class="text-slate-700"><strong>EP Filed on Client's Behalf:</strong> Use macro <code>"ALL | Ack and stop the clock - looped in"</code>. Then change Requester field to actual client, add original EP requester to CC, insert client's first name in greeting.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUBTAB 4: QIN & DISPUTE -->
+                <div id="sop-content-quin" class="space-y-4 hidden text-xs">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="p-4 bg-slate-900 text-white rounded-xl space-y-2">
+                            <h4 class="font-bold text-pink-400 flex items-center gap-1.5">
+                                <i class="fa-solid fa-file-circle-exclamation"></i> Quality Incident Notification (QIN)
+                            </h4>
+                            <p class="text-slate-300 leading-relaxed">Formal internal document issued when an interaction involves process violations outside standard rubric levels. Not disciplinary—used for structured coaching.</p>
+                        </div>
+
+                        <div class="p-4 bg-pink-50 rounded-xl border border-pink-200 space-y-2">
+                            <h4 class="font-bold text-pink-950 flex items-center gap-1.5">
+                                <i class="fa-solid fa-scale-balanced"></i> Quality Dispute Submission Process
+                            </h4>
+                            <ol class="list-decimal list-inside space-y-1 text-slate-700 leading-relaxed">
+                                <li>Submit Dispute Form within 3 business days.</li>
+                                <li>Assigned to QA SME (24–48 hours SLA).</li>
+                                <li>Decision: Approved OR Escalated to Leadership.</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUBTAB 5: EDITABLE SOP CONTEXT -->
+                <div id="sop-content-editor" class="space-y-2 hidden">
+                    <label class="block text-xs font-bold text-pink-900 flex justify-between items-center">
+                        <span>Active QA SOP Instructions & Rubric 3.3 Prompt Benchmark</span>
+                    </label>
+                    <textarea id="sop-rules-text" rows="14" class="w-full p-4 text-xs font-mono leading-relaxed border border-pink-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 bg-pink-50/20 text-slate-800"></textarea>
+                </div>
+            </div>
+        </section>
+
     </main>
 
-    <!-- AI CHATBOT DRAWER PANEL -->
     <aside id="chat-drawer" class="fixed inset-y-0 right-0 w-full sm:w-[420px] bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out border-l border-pink-200 flex flex-col">
-        <!-- Chat Header -->
         <div class="p-4 bg-gradient-to-r from-pink-800 to-pink-900 text-white flex items-center justify-between">
             <div class="flex items-center space-x-3">
                 <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-pink-100 font-bold">
                     <i class="fa-solid fa-robot"></i>
                 </div>
                 <div>
-                    <h3 class="text-sm font-bold">QA Co-Analyst AI Assistant</h3>
+                    <h3 class="text-xs font-bold">QA Co-Analyst AI Assistant</h3>
                     <p class="text-[10px] text-pink-200">Powered by Gemini 3 Flash • Ticket Advisor</p>
                 </div>
             </div>
@@ -451,21 +649,18 @@
             </button>
         </div>
 
-        <!-- Chat Messages Container -->
         <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3 bg-pink-50/40 text-xs">
-            <!-- Initial AI Welcome Message -->
             <div class="flex gap-2.5">
                 <div class="w-7 h-7 rounded-full bg-pink-600 text-white flex items-center justify-center flex-shrink-0 text-xs">
                     <i class="fa-solid fa-robot"></i>
                 </div>
                 <div class="bg-white p-3 rounded-2xl rounded-tl-none border border-pink-200 text-slate-700 shadow-sm space-y-1 max-w-[85%]">
-                    <p class="font-bold text-pink-900 text-[11px]">Co-QA Analyst AI</p>
-                    <p>Hello! I am your interactive Co-Quality Analyst. Ask me anything about your tickets, request coaching email drafts for assignees, or inquire about recurring QA themes!</p>
+                    <p class="font-bold text-pink-900 text-[10px]">Co-QA Analyst AI</p>
+                    <p>Hello! I am your interactive Co-Quality Analyst. Paste Zendesk conversations to analyze gaps, ask about Rubric 3.3 rules, or request coaching advice for assignees!</p>
                 </div>
             </div>
         </div>
 
-        <!-- Chat Quick Prompt Recommendations -->
         <div class="p-2 border-t border-pink-100 bg-white flex gap-1.5 overflow-x-auto text-[10px]">
             <button onclick="sendQuickPrompt('Summarize the top QA misses across all tickets.')" class="px-2.5 py-1 bg-pink-50 hover:bg-pink-100 text-pink-700 rounded-full border border-pink-200 whitespace-nowrap">
                 💡 Top QA Misses
@@ -473,12 +668,8 @@
             <button onclick="sendQuickPrompt('Which assignees need urgent coaching?')" class="px-2.5 py-1 bg-pink-50 hover:bg-pink-100 text-pink-700 rounded-full border border-pink-200 whitespace-nowrap">
                 🎯 Urgent Coaching
             </button>
-            <button onclick="sendQuickPrompt('Draft a 1-on-1 QA coaching template for agents.')" class="px-2.5 py-1 bg-pink-50 hover:bg-pink-100 text-pink-700 rounded-full border border-pink-200 whitespace-nowrap">
-                📝 Coaching Template
-            </button>
         </div>
 
-        <!-- Chat Input Form -->
         <form onsubmit="handleChatMessageSubmit(event)" class="p-3 bg-white border-t border-pink-200 flex items-center space-x-2">
             <input type="text" id="chat-input" placeholder="Ask your Co-Analyst..." required class="flex-1 px-3 py-2 text-xs border border-pink-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 bg-pink-50/20">
             <button type="submit" id="chat-send-btn" class="bg-pink-600 hover:bg-pink-700 text-white p-2.5 rounded-xl transition shadow">
@@ -493,111 +684,253 @@
             <div class="flex items-start justify-between border-b border-pink-100 pb-3">
                 <div>
                     <span id="modal-ticket-id" class="text-xs font-bold px-2.5 py-1 rounded bg-pink-100 text-pink-800">TCK-0000</span>
-                    <h2 id="modal-ticket-subject" class="text-lg font-bold text-pink-950 mt-1">Ticket Subject</h2>
+                    <h2 id="modal-ticket-subject" class="text-base font-bold text-pink-950 mt-1">Ticket Subject</h2>
                 </div>
                 <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 p-1">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
 
-            <div id="modal-body" class="space-y-4 text-xs">
-                <!-- Modal details dynamically loaded -->
-            </div>
+            <div id="modal-body" class="space-y-4 text-xs"></div>
 
             <div class="flex justify-end border-t border-pink-100 pt-3">
-                <button onclick="closeModal()" class="px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-800 font-semibold rounded-lg text-xs">
+                <button onclick="closeModal()" class="px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-800 font-semibold rounded-xl text-xs">
                     Close
                 </button>
             </div>
         </div>
     </div>
 
+    <div id="sheets-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full border border-pink-200 shadow-2xl p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-pink-100 pb-3">
+                <h3 class="text-sm font-bold text-pink-950 flex items-center gap-2">
+                    <i class="fa-solid fa-table text-emerald-600"></i>
+                    Google Sheets / Mac Export
+                </h3>
+                <button onclick="closeSheetsModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-600 leading-relaxed">
+                Use these options to effortlessly transfer your QA Ticket Analysis directly into Google Sheets on your Mac:
+            </p>
+
+            <div class="space-y-3 pt-2">
+                <button onclick="copyTableForGoogleSheets()" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold p-3 rounded-xl shadow transition flex items-center justify-center gap-2 text-xs">
+                    <i class="fa-solid fa-copy"></i>
+                    <span>1-Click Copy Data for Google Sheets</span>
+                </button>
+
+                <a href="https://sheets.new" target="_blank" rel="noopener noreferrer" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold p-3 rounded-xl shadow transition flex items-center justify-center gap-2 text-xs block text-center">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    <span>Launch New Google Sheet (sheets.new)</span>
+                </a>
+
+                <button onclick="exportToCsv()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold p-3 rounded-xl border border-slate-300 transition flex items-center justify-center gap-2 text-xs">
+                    <i class="fa-solid fa-file-csv"></i>
+                    <span>Download .CSV File (Mac Numbers / Sheets)</span>
+                </button>
+            </div>
+
+            <div class="bg-pink-50 p-3 rounded-xl border border-pink-200 text-[11px] text-pink-900 space-y-1">
+                <p class="font-bold">Mac Shortcut Tip:</p>
+                <p>Click "1-Click Copy", open Google Sheets, select cell <strong>A1</strong>, and press <code class="bg-white px-1.5 py-0.5 rounded border border-pink-200 font-mono">⌘ + V</code> to paste with columns preserved!</p>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // State Storage
+        // State Storage - Empty by default (No pre-loaded sample data)
         let tickets = [];
         let themeChartInstance = null;
         let priorityChartInstance = null;
 
-        // Initial Seed Mock Tickets to populate state gracefully
-        const initialMockTickets = [
-            {
-                id: 'TCK-9201',
-                subject: 'Customer charged twice on annual renewal subscription',
-                requester: 'Amanda Vance (TechCorp)',
-                priority: 'High',
-                requested: new Date(Date.now() - (30 * 3600 * 1000)).toISOString().slice(0, 16), // 30 hrs ago (Green)
-                updated: new Date(Date.now() - (12 * 3600 * 1000)).toISOString().slice(0, 16), // 12 hrs ago (Green)
-                assignee: 'Sarah Jenkins',
-                missed: 'Failed to issue refund immediately and did not verify duplicate transaction ID in Stripe payment gateway.',
-                shouldDone: 'Cross-reference billing logs, execute direct refund via billing portal, and issue formal apology credit.',
-                theme: 'Tool / System Usage',
-                notes: 'Sarah was polite but skipped standard payment verification workflow. Needs refresher on Stripe dashboard refunds.',
-                conversation: 'Customer: I see two charges of $299 on my account. Please fix this!\nAgent: Hello Amanda, thank you for reaching out. I see your account is active. Let me transfer you to billing.\nCustomer: Is anyone going to refund this?'
-            },
-            {
-                id: 'TCK-8812',
-                subject: 'SAML Single Sign-On authentication failure for domain users',
-                requester: 'David Miller',
-                priority: 'Urgent',
-                requested: new Date(Date.now() - (120 * 3600 * 1000)).toISOString().slice(0, 16), // 120 hrs ago
-                updated: new Date(Date.now() - (60 * 3600 * 1000)).toISOString().slice(0, 16), // 60 hrs ago (Yellow)
-                assignee: 'Mark Rivera',
-                missed: 'Ticket sat idle for over 48 hours without sending an update to customer regarding Tier 3 engineering escalation.',
-                shouldDone: 'Set proactive follow-up reminder, inform customer of ongoing SAML log investigation within 24 hours.',
-                theme: 'Escalation & SLA',
-                notes: 'Mark handled technical diagnosis well, but completely missed SLA proactive update guidelines.',
-                conversation: 'Customer: Our entire team is locked out due to SSO errors.\nAgent: Ticket submitted to engineering.\n[No response for 2.5 days]\nCustomer: Any updates on this outage?'
-            },
-            {
-                id: 'TCK-7410',
-                subject: 'API Rate limit exceeded on production webhook integration',
-                requester: 'Evelyn Reed',
-                priority: 'Urgent',
-                requested: new Date(Date.now() - (200 * 3600 * 1000)).toISOString().slice(0, 16), // 200 hrs ago
-                updated: new Date(Date.now() - (110 * 3600 * 1000)).toISOString().slice(0, 16), // 110 hrs ago (Red)
-                assignee: 'Alex Chen',
-                missed: 'Incorrect advice given regarding rate limit headers; agent recommended lowering payload instead of upgrading tier.',
-                shouldDone: 'Provide accurate API documentation link and explain enterprise tier rate limits.',
-                theme: 'Product Knowledge',
-                notes: 'Inaccurate product guidance led to customer frustration and repeated follow-ups.',
-                conversation: 'Customer: Webhooks returning 429 status code.\nAgent: Please send smaller JSON payloads.\nCustomer: That is not how rate limits work, please escalate.'
-            },
-            {
-                id: 'TCK-9450',
-                subject: 'Password reset request for legacy account administrator',
-                requester: 'Robert Thorne',
-                priority: 'Medium',
-                requested: new Date(Date.now() - (15 * 3600 * 1000)).toISOString().slice(0, 16),
-                updated: new Date(Date.now() - (5 * 3600 * 1000)).toISOString().slice(0, 16), // 5 hrs ago (Green)
-                assignee: 'Sarah Jenkins',
-                missed: 'None. Verification steps were followed perfectly.',
-                shouldDone: 'Performed 2FA identity check, validated account ownership, and sent secure reset link.',
-                theme: 'Perfect Handling',
-                notes: 'Great execution of security protocols and swift empathetic communication.',
-                conversation: 'Customer: Need password reset for admin account.\nAgent: I can help! Please verify the 6-digit pin sent to your phone.\nCustomer: Pin verified.\nAgent: Reset email sent.'
+        // Default Zendesk QA Rubric 3.3 Benchmark Text
+        const DEFAULT_QA_SOP = `ZENDESK QA RUBRIC 3.3 — SUPPORT QUALITY FRAMEWORK (GUIDE ONLY - NO SCORING)
+
+1. EVALUATION CATEGORIES (USE AS AUDIT BENCHMARK):
+   - Category 1: Problem Understanding & Relevance (Deep understanding, user type context, anticipate actual needs)
+   - Category 2: Completeness & Resolution Ownership (Propose call after 5 touches without progress)
+   - Category 3: Accuracy & Product Knowledge (Correct, no internal jargon)
+   - Category 4: Troubleshooting Quality & Depth (Investigate before escalating, include links/repro steps/logs, never rely solely on AI)
+   - Category 5: Meaningful Communication (No generic sign-offs; genuine check-in referencing actual issue before standard closure)
+   - Category 6: Structure, Tone & Clarity (Short paragraphs, blank line before signature every time, acknowledge patience)
+   - Category 7: Jira Reporting Quality (Full repro steps & evidence; internal notes match Jira; N/A if no Jira)
+   - Category 8: Internal Notes Quality (Required format: Issue Description / WW Item & Links / Troubleshooting & Actions Taken / Next Actions / Docs Used. Link Engineering follow-up; AI recap on long/handed-over tickets)
+   - Category 9: Process Adherence & Operational Excellence (Never share OTPs/credentials; correct Stop-the-Clock macro EP vs Client; Ticket subject format: "123456 - Title/Query")
+
+2. NON-NEGOTIABLE FLAGS (⚑ CRITICAL GAPS):
+   - Generic/irrelevant responses ignoring user query
+   - No troubleshooting before filing Jira
+   - Macro misuse (check-in macro instead of real answer)
+   - Ignoring user questions
+   - Poor/missing internal notes
+   - Misleading or incorrect info provided
+   - No patience acknowledgement after hold/delay
+   - Requester not updated to actual client on EP-filed tickets
+   - Wall of text or missing blank line before signature
+   - Generic closing check-in without referencing actual issue
+   - Replied without reading full ticket history on handed-over tickets
+   - OTP or credential shared via call/chat/channel (CRITICAL)
+   - Engineering follow-up not linked back via internal note (Triggers QIN)
+
+3. QUALITY WARNING FLAGS (⚠ SECONDARY GAPS):
+   - Direct reference to FullStory or internal tools (use neutral "our system shows...")
+   - Unredacted internal tools/links visible in screenshots
+   - Used word "bug" instead of "issue" or "unexpected behaviour"
+   - Wrong stop-the-clock macro used on EP-filed tickets
+
+4. COMMUNICATION DIRECTIVES:
+   - Empower, don't do it for them.
+   - Match greeting to stage (No "Thank you for reaching out" on follow-ups; use "Thank you for the update").
+   - Always use client's first name.
+   - Acknowledge before moving forward.
+   - Explain why when requesting info.
+   - Soften deletion language ("removed" / "no longer visible").
+   - Propose a call after 5 stalled touches.`;
+
+        function saveTicketsToStorage() {
+            localStorage.setItem('qa_tickets_data', JSON.stringify(tickets));
+        }
+
+        function getActiveSopText() {
+            const sopInput = document.getElementById('sop-rules-text');
+            return (sopInput && sopInput.value) ? sopInput.value : DEFAULT_QA_SOP;
+        }
+
+        function saveCustomSop() {
+            const sopText = document.getElementById('sop-rules-text').value;
+            localStorage.setItem('qa_sop_rules', sopText);
+            alert('QA SOP guidelines saved successfully!');
+        }
+
+        function resetSopToDefault() {
+            if (confirm('Are you sure you want to reset the QA SOP to the default Rubric 3.3 rules?')) {
+                document.getElementById('sop-rules-text').value = DEFAULT_QA_SOP;
+                localStorage.removeItem('qa_sop_rules');
+                alert('QA SOP reset to Rubric 3.3 default.');
             }
-        ];
+        }
+
+        function getHoursSinceUpdated(dateIso) {
+            if (!dateIso) return 0;
+            const date = new Date(dateIso);
+            if (isNaN(date.getTime())) return 0;
+            const diffMs = new Date() - date;
+            return Math.max(0, Math.floor(diffMs / (1000 * 60 * 60)));
+        }
+
+        function getTicketAge(dateIso) {
+            if (!dateIso) return 'N/A';
+            const date = new Date(dateIso);
+            if (isNaN(date.getTime())) return 'N/A';
+            const diffMs = new Date() - date;
+            const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            if (days > 0) return `${days}d ${hours}h`;
+            return `${hours}h`;
+        }
+
+        function getSlaStatus(updatedIso) {
+            const hrs = getHoursSinceUpdated(updatedIso);
+            if (hrs <= 48) return 'GREEN';
+            if (hrs <= 96) return 'YELLOW';
+            return 'RED';
+        }
+
+        function parseConversationOnInput() {
+            const text = document.getElementById('input-conversation').value;
+            if (!text || text.trim().length < 10) return;
+
+            // Pattern matching lines like: Name, Month Day Year Time
+            // Example: Customer Name, June 29 2026 8:00
+            const lineRegex = /^([A-Za-z0-9\s\.\-\'\(\)]+),\s*([A-Za-z]+\s+\d{1,2},?\s+\d{4}\s+\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AP]M)?)/gim;
+
+            let matches = [];
+            let match;
+            while ((match = lineRegex.exec(text)) !== null) {
+                matches.push({
+                    name: match[1].trim(),
+                    dateStr: match[2].trim()
+                });
+            }
+
+            if (matches.length > 0) {
+                // Requester is typically the first person in the log
+                const requesterInput = document.getElementById('input-requester');
+                if (requesterInput && (!requesterInput.value || requesterInput.value === 'N/A')) {
+                    requesterInput.value = matches[0].name;
+                }
+
+                // If there are multiple unique speakers, assignee is usually the second distinct speaker
+                const uniqueNames = Array.from(new Set(matches.map(m => m.name)));
+                const assigneeInput = document.getElementById('input-assignee');
+                if (assigneeInput && uniqueNames.length > 1) {
+                    assigneeInput.value = uniqueNames[1];
+                } else if (assigneeInput && uniqueNames.length === 1 && !assigneeInput.value) {
+                    assigneeInput.value = uniqueNames[0];
+                }
+
+                // Parse dates
+                const firstDate = parseFlexDate(matches[0].dateStr);
+                const lastDate = parseFlexDate(matches[matches.length - 1].dateStr);
+
+                if (firstDate) {
+                    document.getElementById('input-requested').value = firstDate;
+                }
+                if (lastDate) {
+                    document.getElementById('input-updated').value = lastDate;
+                }
+
+                // Flash badge notification
+                const badge = document.getElementById('auto-parse-badge');
+                if (badge) {
+                    badge.classList.remove('opacity-0');
+                    setTimeout(() => badge.classList.add('opacity-0'), 3500);
+                }
+            }
+
+            // Generate ticket ID if not populated
+            const idInput = document.getElementById('input-id');
+            if (idInput && !idInput.value) {
+                const randomId = 'TCK-' + Math.floor(1000 + Math.random() * 9000);
+                idInput.value = randomId;
+            }
+        }
+
+        function parseFlexDate(str) {
+            try {
+                const d = new Date(str);
+                if (isNaN(d.getTime())) return null;
+                return d.toISOString().slice(0, 16);
+            } catch(e) {
+                return null;
+            }
+        }
 
         window.onload = function() {
-            // Load saved tickets or use initial mock data
+            // Load saved tickets or initialize completely empty array
             const saved = localStorage.getItem('qa_tickets_data');
             if (saved) {
                 try {
                     tickets = JSON.parse(saved);
                 } catch(e) {
-                    tickets = [...initialMockTickets];
+                    tickets = [];
                 }
             } else {
-                tickets = [...initialMockTickets];
+                tickets = [];
                 saveTicketsToStorage();
             }
 
-            // Set default date inputs for form
-            const nowIso = new Date().toISOString().slice(0, 16);
-            document.getElementById('input-requested').value = nowIso;
-            document.getElementById('input-updated').value = nowIso;
+            // Initialize SOP Text area
+            const savedSop = localStorage.getItem('qa_sop_rules');
+            const sopInput = document.getElementById('sop-rules-text');
+            if (sopInput) {
+                sopInput.value = savedSop || DEFAULT_QA_SOP;
+            }
 
-            // Render all UI components
             updateGlobalStats();
             populateThemeDropdowns();
             renderTicketTable();
@@ -605,144 +938,93 @@
             initAnalyticsCharts();
         };
 
-        function saveTicketsToStorage() {
-            localStorage.setItem('qa_tickets_data', JSON.stringify(tickets));
-            updateGlobalStats();
-        }
-
-        // Calculates hours elapsed between update date and now
-        function getHoursSinceUpdated(updatedIso) {
-            if (!updatedIso) return 0;
-            const updatedDate = new Date(updatedIso);
-            const now = new Date();
-            const diffMs = now - updatedDate;
-            return Math.max(0, Math.round(diffMs / (1000 * 60 * 60)));
-        }
-
-        // Calculates total ticket age from created/requested date to now
-        function getTicketAge(requestedIso) {
-            if (!requestedIso) return '0 hrs';
-            const reqDate = new Date(requestedIso);
-            const now = new Date();
-            const diffMs = now - reqDate;
-            const hours = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60)));
-            const days = Math.floor(hours / 24);
-            const remHours = hours % 24;
-
-            if (days > 0) {
-                return `${days}d ${remHours}h`;
-            }
-            return `${hours} hrs`;
-        }
-
-        // Color coding rule logic:
-        // <= 48 hrs -> GREEN
-        // > 48 hrs & <= 96 hrs -> YELLOW
-        // > 96 hrs -> RED
-        function getSlaCategory(hours) {
-            if (hours <= 48) return 'GREEN';
-            if (hours <= 96) return 'YELLOW';
-            return 'RED';
-        }
-
-        function getSlaRowClass(hours) {
-            const cat = getSlaCategory(hours);
-            if (cat === 'GREEN') return 'ticket-green';
-            if (cat === 'YELLOW') return 'ticket-yellow';
-            return 'ticket-red';
-        }
-
         function switchTab(tabName) {
-            const tabs = ['analyze', 'list', 'grouped', 'analytics'];
-            tabs.forEach(t => {
-                const view = document.getElementById(`view-${t}`);
-                const btn = document.getElementById(`tab-btn-${t}`);
-                if (t === tabName) {
-                    view.classList.remove('hidden');
-                    btn.classList.add('bg-white', 'text-pink-700', 'shadow-sm', 'border', 'border-pink-200');
-                    btn.classList.remove('hover:bg-pink-200/60');
+            const views = ['analyze', 'list', 'grouped', 'analytics', 'sop'];
+            views.forEach(v => {
+                const viewEl = document.getElementById(`view-${v}`);
+                const btnEl = document.getElementById(`tab-btn-${v}`);
+                if (v === tabName) {
+                    viewEl?.classList.remove('hidden');
+                    btnEl?.classList.add('bg-white', 'text-pink-800', 'shadow-sm', 'border', 'border-pink-200');
                 } else {
-                    view.classList.add('hidden');
-                    btn.classList.remove('bg-white', 'text-pink-700', 'shadow-sm', 'border', 'border-pink-200');
-                    btn.classList.add('hover:bg-pink-200/60');
+                    viewEl?.classList.add('hidden');
+                    btnEl?.classList.remove('bg-white', 'text-pink-800', 'shadow-sm', 'border', 'border-pink-200');
                 }
             });
 
-            if (tabName === 'list') renderTicketTable();
-            if (tabName === 'grouped') renderAssigneeGroupedView();
-            if (tabName === 'analytics') updateAnalyticsDashboard();
+            if (tabName === 'analytics') {
+                updateAnalyticsCharts();
+            }
         }
 
-        function updateGlobalStats() {
-            let green = 0, yellow = 0, red = 0;
-            tickets.forEach(t => {
-                const hrs = getHoursSinceUpdated(t.updated);
-                const cat = getSlaCategory(hrs);
-                if (cat === 'GREEN') green++;
-                else if (cat === 'YELLOW') yellow++;
-                else red++;
-            });
-
-            document.getElementById('stat-green-count').innerText = green;
-            document.getElementById('stat-yellow-count').innerText = yellow;
-            document.getElementById('stat-red-count').innerText = red;
-            document.getElementById('badge-total-tickets').innerText = tickets.length;
-        }
-
-        function populateThemeDropdowns() {
-            const themes = [...new Set(tickets.map(t => t.theme))].filter(Boolean);
-            const select = document.getElementById('theme-filter');
-            select.innerHTML = '<option value="ALL">All QA Themes</option>';
-            themes.forEach(th => {
-                select.innerHTML += `<option value="${th}">${th}</option>`;
+        function switchSopSubTab(subTabName) {
+            const subTabs = ['categories', 'nonnegotiables', 'guidelines', 'quin', 'editor'];
+            subTabs.forEach(st => {
+                const content = document.getElementById(`sop-content-${st}`);
+                const btn = document.getElementById(`sop-subtab-${st}`);
+                if (st === subTabName) {
+                    content?.classList.remove('hidden');
+                    btn?.classList.add('bg-pink-600', 'text-white', 'shadow-sm');
+                    btn?.classList.remove('text-pink-700', 'hover:bg-pink-100');
+                } else {
+                    content?.classList.add('hidden');
+                    btn?.classList.remove('bg-pink-600', 'text-white', 'shadow-sm');
+                    btn?.classList.add('text-pink-700', 'hover:bg-pink-100');
+                }
             });
         }
 
-        function handleTicketSubmit(e) {
-            e.preventDefault();
+        function toggleChatDrawer() {
+            const drawer = document.getElementById('chat-drawer');
+            drawer?.classList.toggle('translate-x-full');
+        }
 
+        function openSheetsModal() {
+            document.getElementById('sheets-modal')?.classList.remove('hidden');
+        }
+
+        function closeSheetsModal() {
+            document.getElementById('sheets-modal')?.classList.add('hidden');
+        }
+
+        function clearFormInputs() {
+            document.getElementById('qa-input-form')?.reset();
+        }
+
+        function handleTicketSubmit(event) {
+            event.preventDefault();
             const newTicket = {
                 id: document.getElementById('input-id').value.trim(),
                 subject: document.getElementById('input-subject').value.trim(),
                 requester: document.getElementById('input-requester').value.trim() || 'N/A',
                 priority: document.getElementById('input-priority').value,
-                requested: document.getElementById('input-requested').value,
-                updated: document.getElementById('input-updated').value,
+                requested: document.getElementById('input-requested').value || new Date().toISOString().slice(0, 16),
+                updated: document.getElementById('input-updated').value || new Date().toISOString().slice(0, 16),
                 assignee: document.getElementById('input-assignee').value.trim() || 'Unassigned',
                 conversation: document.getElementById('input-conversation').value.trim(),
-                missed: document.getElementById('input-missed').value.trim() || 'None noted.',
-                shouldDone: document.getElementById('input-should-done').value.trim() || 'Follow standard operating procedure.',
+                missed: document.getElementById('input-missed').value.trim() || 'None noted',
+                shouldDone: document.getElementById('input-should-done').value.trim() || 'None noted',
                 theme: document.getElementById('input-theme').value,
-                notes: document.getElementById('input-notes').value.trim() || 'No additional notes.'
+                notes: document.getElementById('input-notes').value.trim() || 'None'
             };
 
-            // Replace existing or push
-            const idx = tickets.findIndex(t => t.id.toLowerCase() === newTicket.id.toLowerCase());
-            if (idx >= 0) {
-                tickets[idx] = newTicket;
+            const existingIdx = tickets.findIndex(t => t.id === newTicket.id);
+            if (existingIdx >= 0) {
+                tickets[existingIdx] = newTicket;
             } else {
-                tickets.unshift(newTicket);
+                tickets.push(newTicket);
             }
 
             saveTicketsToStorage();
+            clearFormInputs();
+            updateGlobalStats();
             populateThemeDropdowns();
-            alert('QA Ticket successfully saved!');
+            renderTicketTable();
+            renderAssigneeGroupedView();
+            updateAnalyticsCharts();
+
+            alert(`Ticket ${newTicket.id} saved successfully!`);
             switchTab('list');
-        }
-
-        function fillSampleData() {
-            const randomNum = Math.floor(1000 + Math.random() * 9000);
-            document.getElementById('input-id').value = `TCK-${randomNum}`;
-            document.getElementById('input-assignee').value = 'Rachel Green';
-            document.getElementById('input-requester').value = 'Michael Scott (Dunder Mifflin)';
-            document.getElementById('input-priority').value = 'High';
-            document.getElementById('input-subject').value = 'Unable to download export report in PDF format';
-            document.getElementById('input-conversation').value = `Customer: Hi, whenever I click Export PDF on my dashboard, I get an "Internal Server Error 500".\nAgent: Hi Michael, clear your browser cache.\nCustomer: I tried three browsers, cleared cache, still getting error 500.\nAgent: Let me close this ticket as resolved then, please re-open if needed.\nCustomer: It is NOT resolved! The bug is still happening!`;
-
-            const req = new Date(Date.now() - (72 * 3600 * 1000)).toISOString().slice(0, 16);
-            const upd = new Date(Date.now() - (50 * 3600 * 1000)).toISOString().slice(0, 16);
-            document.getElementById('input-requested').value = req;
-            document.getElementById('input-updated').value = upd;
         }
 
         async function runAiAnalysis() {
@@ -757,27 +1039,33 @@
             const btn = document.getElementById('btn-ai-analyze');
             const originalHtml = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> <span>Analyzing with Gemini AI...</span>`;
+            btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> <span>Auditing against Rubric 3.3...</span>`;
 
             try {
                 const apiKey = "";
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+                const sopRules = getActiveSopText();
 
-                const systemInstruction = `You are a Senior Customer Support Quality Assurance (QA) Analyst.
-Your job is to analyze support ticket transcripts/conversations and evaluate agent performance.
-Return a valid JSON object matching the exact schema requested. Be objective, thorough, and constructive.`;
+                const systemInstruction = `You are a Senior Customer Support Quality Assurance (QA) Analyst auditing Zendesk tickets.
+EVALUATE STRICTLY AGAINST ZENDESK QA RUBRIC 3.3 & SUPPORT QUALITY FRAMEWORK GUIDELINES.
+DO NOT ASSIGN OR CALCULATE NUMERICAL SCORES/POINTS.
 
-                const promptText = `Analyze this support interaction:
-Subject / Description: ${subject || 'Not specified'}
-Conversation / Details:
-${conversation}
+EVALUATION FRAMEWORK & SOP GUIDELINES:
+${sopRules}
 
-Provide QA evaluation JSON containing:
-1. "missed": What was missed by the agent? (Process gaps, missed details, lack of empathy, SLA delay, wrong answer).
-2. "shouldDone": What should have been done ideally?
-3. "theme": Choose ONE from ["Escalation & SLA", "Product Knowledge", "Soft Skills & Tone", "Tool / System Usage", "Verification & Security", "First Contact Resolution", "Proper Documentation", "Perfect Handling"].
-4. "notes": Brief coaching advice or summary for the team supervisor.
-5. "suggestedPriority": Low, Medium, High, or Urgent based on tone & impact.`;
+Also extract ticket metadata if present in thread:
+- "assignee": Agent name if detected
+- "requester": Customer/Requester name if detected
+- "missed": Identify missed items, rubric violations, non-negotiables (⚑), or warning flags (⚠).
+- "shouldDone": Actionable, ideal steps per Communication Directives & SOP.
+- "theme": Choose ONE from ["Escalation & SLA", "Product Knowledge", "Soft Skills & Tone", "Tool / System Usage", "Verification & Security", "First Contact Resolution", "Proper Documentation", "Process Adherence", "Perfect Handling"].
+- "notes": Constructive coaching feedback for agent 1-on-1s. Note if a QIN should be issued.
+- "suggestedPriority": Low, Medium, High, or Urgent based on severity.`;
+
+                const promptText = `Evaluate this support interaction against QA Rubric 3.3:
+Subject: ${subject || 'Not specified'}
+Conversation:
+${conversation}`;
 
                 const payload = {
                     contents: [{ parts: [{ text: promptText }] }],
@@ -787,6 +1075,8 @@ Provide QA evaluation JSON containing:
                         responseSchema: {
                             type: "OBJECT",
                             properties: {
+                                "assignee": { "type": "STRING" },
+                                "requester": { "type": "STRING" },
                                 "missed": { "type": "STRING" },
                                 "shouldDone": { "type": "STRING" },
                                 "theme": { "type": "STRING" },
@@ -804,9 +1094,7 @@ Provide QA evaluation JSON containing:
                     body: JSON.stringify(payload)
                 });
 
-                if (!response.ok) {
-                    throw new Error(`API response status: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`API response status: ${response.status}`);
 
                 const result = await response.json();
                 const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -818,8 +1106,15 @@ Provide QA evaluation JSON containing:
                     if (parsed.theme) document.getElementById('input-theme').value = parsed.theme;
                     document.getElementById('input-notes').value = parsed.notes || '';
                     if (parsed.suggestedPriority) document.getElementById('input-priority').value = parsed.suggestedPriority;
+                    
+                    if (parsed.assignee && !document.getElementById('input-assignee').value) {
+                        document.getElementById('input-assignee').value = parsed.assignee;
+                    }
+                    if (parsed.requester && !document.getElementById('input-requester').value) {
+                        document.getElementById('input-requester').value = parsed.requester;
+                    }
 
-                    alert('✨ AI Co-Analyst evaluation completed! Fields have been auto-populated.');
+                    alert('✨ AI Co-Analyst audit complete! Quality gaps benchmarked against Zendesk QA Rubric 3.3.');
                 }
             } catch (err) {
                 console.error("AI Analysis error:", err);
@@ -830,399 +1125,30 @@ Provide QA evaluation JSON containing:
             }
         }
 
-        function renderTicketTable() {
-            const tbody = document.getElementById('ticket-table-body');
-            const emptyState = document.getElementById('table-empty-state');
-            const search = document.getElementById('search-filter').value.toLowerCase();
-            const statusFilter = document.getElementById('status-color-filter').value;
-            const themeFilter = document.getElementById('theme-filter').value;
-
-            tbody.innerHTML = '';
-
-            const filtered = tickets.filter(t => {
-                const hrs = getHoursSinceUpdated(t.updated);
-                const slaCat = getSlaCategory(hrs);
-
-                if (statusFilter !== 'ALL' && slaCat !== statusFilter) return false;
-                if (themeFilter !== 'ALL' && t.theme !== themeFilter) return false;
-
-                if (search) {
-                    const matchStr = `${t.id} ${t.subject} ${t.assignee} ${t.requester} ${t.theme} ${t.missed} ${t.notes}`.toLowerCase();
-                    if (!matchStr.includes(search)) return false;
-                }
-                return true;
-            });
-
-            if (filtered.length === 0) {
-                emptyState.classList.remove('hidden');
-                return;
-            }
-            emptyState.classList.add('hidden');
-
-            filtered.forEach(t => {
-                const hrs = getHoursSinceUpdated(t.updated);
-                const age = getTicketAge(t.requested);
-                const rowClass = getSlaRowClass(hrs);
-
-                let badgeColor = 'bg-slate-100 text-slate-800';
-                if (hrs <= 48) badgeColor = 'bg-emerald-200 text-emerald-900 border-emerald-300';
-                else if (hrs <= 96) badgeColor = 'bg-amber-200 text-amber-900 border-amber-300';
-                else badgeColor = 'bg-rose-200 text-rose-900 border-rose-300';
-
-                const tr = document.createElement('tr');
-                tr.className = `${rowClass} transition hover:opacity-90 border-b border-pink-100/60 text-[12px]`;
-                tr.innerHTML = `
-                    <td class="p-3 font-mono font-bold text-pink-950">${escapeHtml(t.id)}</td>
-                    <td class="p-3 font-semibold text-slate-900">
-                        <div class="line-clamp-2">${escapeHtml(t.subject)}</div>
-                    </td>
-                    <td class="p-3 text-slate-700">${escapeHtml(t.requester)}</td>
-                    <td class="p-3 font-semibold">
-                        <span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold ${getPriorityBadgeClass(t.priority)}">
-                            ${escapeHtml(t.priority)}
-                        </span>
-                    </td>
-                    <td class="p-3 text-slate-600 whitespace-nowrap">${formatDate(t.requested)}</td>
-                    <td class="p-3 text-slate-600 whitespace-nowrap">${formatDate(t.updated)}</td>
-                    <td class="p-3 font-semibold text-pink-900">${escapeHtml(t.assignee)}</td>
-                    <td class="p-3 text-red-900"><div class="line-clamp-2">${escapeHtml(t.missed)}</div></td>
-                    <td class="p-3 text-emerald-900"><div class="line-clamp-2">${escapeHtml(t.shouldDone)}</div></td>
-                    <td class="p-3">
-                        <span class="px-2 py-1 rounded-full bg-pink-100 text-pink-800 font-medium text-[11px] whitespace-nowrap">
-                            ${escapeHtml(t.theme)}
-                        </span>
-                    </td>
-                    <td class="p-3 text-slate-700"><div class="line-clamp-2">${escapeHtml(t.notes)}</div></td>
-                    <td class="p-3 text-center font-bold">
-                        <span class="px-2.5 py-1 rounded-full text-xs border ${badgeColor}">
-                            ${hrs} hrs
-                        </span>
-                    </td>
-                    <td class="p-3 text-center font-semibold text-slate-700">${age}</td>
-                    <td class="p-3 text-center">
-                        <div class="flex items-center justify-center space-x-2">
-                            <button onclick="viewTicketModal('${t.id}')" title="View Ticket" class="p-1.5 bg-white text-pink-700 hover:bg-pink-100 rounded-lg shadow-sm border border-pink-200">
-                                <i class="fa-solid fa-eye"></i>
-                            </button>
-                            <button onclick="deleteTicket('${t.id}')" title="Delete Ticket" class="p-1.5 bg-white text-rose-600 hover:bg-rose-100 rounded-lg shadow-sm border border-rose-200">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function renderAssigneeGroupedView() {
-            const container = document.getElementById('assignee-cards-container');
-            container.innerHTML = '';
-
-            // Group tickets by Assignee
-            const groups = {};
-            tickets.forEach(t => {
-                const name = t.assignee || 'Unassigned';
-                if (!groups[name]) groups[name] = [];
-                groups[name].push(t);
-            });
-
-            const assigneeNames = Object.keys(groups);
-            if (assigneeNames.length === 0) {
-                container.innerHTML = `<p class="text-sm text-slate-500 text-center py-8">No tickets available to group.</p>`;
-                return;
-            }
-
-            assigneeNames.forEach(name => {
-                const list = groups[name];
-
-                // Count stats
-                let green = 0, yellow = 0, red = 0;
-                const themeCount = {};
-
-                list.forEach(t => {
-                    const hrs = getHoursSinceUpdated(t.updated);
-                    const cat = getSlaCategory(hrs);
-                    if (cat === 'GREEN') green++;
-                    else if (cat === 'YELLOW') yellow++;
-                    else red++;
-
-                    themeCount[t.theme] = (themeCount[t.theme] || 0) + 1;
-                });
-
-                // Top theme missed
-                const topTheme = Object.entries(themeCount).sort((a,b) => b[1] - a[1])[0]?.[0] || 'N/A';
-
-                const card = document.createElement('div');
-                card.className = 'bg-white rounded-2xl border border-pink-200 shadow-sm overflow-hidden';
-                card.innerHTML = `
-                    <div class="p-5 bg-gradient-to-r from-pink-50 to-white border-b border-pink-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-12 h-12 rounded-full bg-pink-600 text-white font-bold flex items-center justify-center text-lg shadow-md shadow-pink-200">
-                                ${name.charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                                <h3 class="text-base font-bold text-pink-950">${escapeHtml(name)}</h3>
-                                <p class="text-xs text-slate-500">Total Assigned: <span class="font-bold text-pink-700">${list.length}</span> tickets • Top QA Area: <span class="font-semibold text-pink-800">${escapeHtml(topTheme)}</span></p>
-                            </div>
-                        </div>
-
-                        <div class="flex items-center space-x-3 text-xs font-semibold">
-                            <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                                ${green} Fresh (&le;48h)
-                            </span>
-                            <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                                ${yellow} Attention (&gt;48h)
-                            </span>
-                            <span class="px-3 py-1 rounded-full bg-rose-100 text-rose-800 border border-rose-200">
-                                ${red} Critical (&gt;96h)
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="p-4 overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-xs">
-                            <thead>
-                                <tr class="bg-pink-100/60 text-pink-900 font-bold uppercase text-[10px]">
-                                    <th class="p-2">ID</th>
-                                    <th class="p-2">Subject</th>
-                                    <th class="p-2">Priority</th>
-                                    <th class="p-2">What Was Missed</th>
-                                    <th class="p-2">QA Theme</th>
-                                    <th class="p-2 text-center">Hours Since Updated</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-pink-100">
-                                ${list.map(t => {
-                                    const hrs = getHoursSinceUpdated(t.updated);
-                                    const rowClass = getSlaRowClass(hrs);
-                                    return `
-                                        <tr class="${rowClass}">
-                                            <td class="p-2 font-mono font-bold text-pink-950">${escapeHtml(t.id)}</td>
-                                            <td class="p-2 font-medium">${escapeHtml(t.subject)}</td>
-                                            <td class="p-2"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${getPriorityBadgeClass(t.priority)}">${t.priority}</span></td>
-                                            <td class="p-2 text-red-900">${escapeHtml(t.missed)}</td>
-                                            <td class="p-2 font-semibold text-pink-800">${escapeHtml(t.theme)}</td>
-                                            <td class="p-2 text-center font-bold">${hrs} hrs</td>
-                                        </tr>
-                                    `;
-                                }).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        function initAnalyticsCharts() {
-            updateAnalyticsDashboard();
-        }
-
-        function updateAnalyticsDashboard() {
-            let green = 0, yellow = 0, red = 0;
-            const themeCounts = {};
-            const priorityAging = { Low: 0, Medium: 0, High: 0, Urgent: 0 };
-
-            tickets.forEach(t => {
-                const hrs = getHoursSinceUpdated(t.updated);
-                const cat = getSlaCategory(hrs);
-                if (cat === 'GREEN') green++;
-                else if (cat === 'YELLOW') yellow++;
-                else red++;
-
-                themeCounts[t.theme] = (themeCounts[t.theme] || 0) + 1;
-                if (hrs > 48) {
-                    priorityAging[t.priority] = (priorityAging[t.priority] || 0) + 1;
-                }
-            });
-
-            document.getElementById('analytics-total').innerText = tickets.length;
-            document.getElementById('analytics-green').innerText = green;
-            document.getElementById('analytics-yellow').innerText = yellow;
-            document.getElementById('analytics-red').innerText = red;
-
-            // Render Theme Donut Chart
-            const themeCtx = document.getElementById('themeChart').getContext('2d');
-            if (themeChartInstance) themeChartInstance.destroy();
-
-            themeChartInstance = new Chart(themeCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(themeCounts),
-                    datasets: [{
-                        data: Object.values(themeCounts),
-                        backgroundColor: [
-                            '#ec4899', '#f43f5e', '#8b5cf6', '#3b82f6',
-                            '#10b981', '#f59e0b', '#06b6d4', '#64748b'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'bottom', labels: { font: { size: 11 } } }
-                    }
-                }
-            });
-
-            // Render Priority Bar Chart
-            const prioCtx = document.getElementById('priorityChart').getContext('2d');
-            if (priorityChartInstance) priorityChartInstance.destroy();
-
-            priorityChartInstance = new Chart(prioCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['Low', 'Medium', 'High', 'Urgent'],
-                    datasets: [{
-                        label: 'Tickets > 48 Hours Un-updated',
-                        data: [priorityAging.Low, priorityAging.Medium, priorityAging.High, priorityAging.Urgent],
-                        backgroundColor: '#db2777'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: { beginAtZero: true, ticks: { stepSize: 1 } }
-                    }
-                }
-            });
-        }
-
-        function exportToExcel() {
-            if (tickets.length === 0) {
-                alert('No ticket data to export.');
-                return;
-            }
-
-            // Headers requested:
-            // ID, Subject, Requester, Priority, Requested (Date opened), Updated (Date last update), Assignee, What was missed, What should have been done, QA Theme, QA Notes, Hours Since Updated, Ticket age
-            const headers = [
-                'ID', 'Subject', 'Requester', 'Priority',
-                'Requested (Date opened)', 'Updated (Date last update)',
-                'Assignee', 'What was missed', 'What should have been done',
-                'QA Theme', 'QA Notes', 'Hours Since Updated', 'Ticket age'
-            ];
-
-            const rows = [headers];
-
-            tickets.forEach(t => {
-                const hrs = getHoursSinceUpdated(t.updated);
-                const age = getTicketAge(t.requested);
-                rows.push([
-                    t.id,
-                    t.subject,
-                    t.requester,
-                    t.priority,
-                    formatDate(t.requested),
-                    formatDate(t.updated),
-                    t.assignee,
-                    t.missed,
-                    t.shouldDone,
-                    t.theme,
-                    t.notes,
-                    hrs,
-                    age
-                ]);
-            });
-
-            // Build Sheet JS worksheet
-            const ws = XLSX.utils.aoa_to_sheet(rows);
-
-            // Apply styling (Row colors per ticket SLA rule)
-            // Green: <=48h -> Light Green (#D4EDDA / RGB C6F6D5)
-            // Yellow: >48-96h -> Light Yellow (#FFF3CD / RGB FEFCBF)
-            // Red: >96h -> Light Red (#F8D7DA / RGB FED7D7)
-            const range = XLSX.utils.decode_range(ws['!ref']);
-
-            for (let R = range.s.r; R <= range.e.r; ++R) {
-                let rowBgColor = "FFFFFF"; // Default white header / row
-
-                if (R === 0) {
-                    // Header row styling
-                    rowBgColor = "831843"; // Dark pink header
-                } else {
-                    const ticketData = tickets[R - 1];
-                    const hrs = getHoursSinceUpdated(ticketData.updated);
-                    const cat = getSlaCategory(hrs);
-
-                    if (cat === 'GREEN') rowBgColor = "D1E7DD"; // Excel Soft Green
-                    else if (cat === 'YELLOW') rowBgColor = "FFF3CD"; // Excel Soft Yellow
-                    else rowBgColor = "F8D7DA"; // Excel Soft Red
-                }
-
-                for (let C = range.s.c; C <= range.e.c; ++C) {
-                    const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-                    if (!ws[cellAddress]) continue;
-
-                    ws[cellAddress].s = {
-                        fill: {
-                            patternType: "solid",
-                            fgColor: { rgb: rowBgColor }
-                        },
-                        font: {
-                            name: "Calibri",
-                            sz: R === 0 ? 11 : 10,
-                            bold: R === 0,
-                            color: { rgb: R === 0 ? "FFFFFF" : "000000" }
-                        },
-                        border: {
-                            top: { style: "thin", color: { rgb: "E2E8F0" } },
-                            bottom: { style: "thin", color: { rgb: "E2E8F0" } },
-                            left: { style: "thin", color: { rgb: "E2E8F0" } },
-                            right: { style: "thin", color: { rgb: "E2E8F0" } }
-                        }
-                    };
-                }
-            }
-
-            // Set column widths
-            ws['!cols'] = [
-                { wch: 12 }, { wch: 35 }, { wch: 20 }, { wch: 12 },
-                { wch: 20 }, { wch: 20 }, { wch: 18 }, { wch: 30 },
-                { wch: 30 }, { wch: 20 }, { wch: 30 }, { wch: 20 }, { wch: 15 }
-            ];
-
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "QA Ticket Analysis");
-
-            const fileName = `QA_Ticket_Analysis_${new Date().toISOString().slice(0, 10)}.xlsx`;
-            XLSX.writeFile(wb, fileName);
-        }
-
-        function toggleChatDrawer() {
-            const drawer = document.getElementById('chat-drawer');
-            drawer.classList.toggle('translate-x-full');
-        }
-
-        function sendQuickPrompt(promptText) {
-            document.getElementById('chat-input').value = promptText;
-            handleChatMessageSubmit(new Event('submit'));
-        }
-
         async function handleChatMessageSubmit(e) {
             e.preventDefault();
             const input = document.getElementById('chat-input');
             const message = input.value.trim();
             if (!message) return;
 
-            // Render User Bubble
             appendChatMessage('user', message);
             input.value = '';
 
-            // Render Typing Indicator
-            const typingId = appendChatMessage('ai', 'Thinking and analyzing ticket repository...');
+            const typingId = appendChatMessage('ai', 'Consulting Zendesk QA Rubric 3.3 & ticket data...');
 
             try {
                 const apiKey = "";
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+                const sopRules = getActiveSopText();
 
-                const systemInstruction = `You are an expert Senior Quality Assurance (QA) Co-Analyst.
-You have access to the user's current support ticket QA analysis data.
-Answer questions constructively, provide coaching templates, summarize trends, or offer action items.
+                const systemInstruction = `You are an expert Senior Quality Assurance (QA) Co-Analyst for ReadyOn Support.
+You are fully expert in Zendesk QA Rubric 3.3, Non-Negotiable Flags (⚑), Warnings (⚠), Stop-the-Clock Macros, QIN Issuance, and Dispute Workflows.
+DO NOT SCORE TICKETS WITH POINTS. Focus on qualitative guidance, coaching drafts, and Rubric 3.3 compliance.
 
-CURRENT TICKET DATA CONTEXT:
+ACTIVE RUBRIC 3.3 FRAMEWORK GUIDELINES:
+${sopRules}
+
+CURRENT TICKET DATABASE CONTEXT:
 ${JSON.stringify(tickets, null, 2)}`;
 
                 const payload = {
@@ -1237,9 +1163,8 @@ ${JSON.stringify(tickets, null, 2)}`;
                 });
 
                 const result = await response.json();
-                const aiResponse = result.candidates?.[0]?.content?.parts?.[0]?.text || "I was unable to process that query. Please try rephrasing.";
+                const aiResponse = result.candidates?.[0]?.content?.parts?.[0]?.text || "I was unable to process that query.";
 
-                // Remove typing placeholder and render response
                 removeChatMessage(typingId);
                 appendChatMessage('ai', aiResponse);
 
@@ -1287,6 +1212,451 @@ ${JSON.stringify(tickets, null, 2)}`;
             if (el) el.remove();
         }
 
+        function sendQuickPrompt(text) {
+            document.getElementById('chat-input').value = text;
+            handleChatMessageSubmit(new Event('submit'));
+        }
+
+        function updateGlobalStats() {
+            let green = 0, yellow = 0, red = 0;
+            tickets.forEach(t => {
+                const status = getSlaStatus(t.updated);
+                if (status === 'GREEN') green++;
+                else if (status === 'YELLOW') yellow++;
+                else if (status === 'RED') red++;
+            });
+
+            const statGreen = document.getElementById('stat-green-count');
+            const statYellow = document.getElementById('stat-yellow-count');
+            const statRed = document.getElementById('stat-red-count');
+            const badgeTotal = document.getElementById('badge-total-tickets');
+
+            if (statGreen) statGreen.innerText = green;
+            if (statYellow) statYellow.innerText = yellow;
+            if (statRed) statRed.innerText = red;
+            if (badgeTotal) badgeTotal.innerText = tickets.length;
+        }
+
+        function populateThemeDropdowns() {
+            const select = document.getElementById('theme-filter');
+            if (!select) return;
+            const currentVal = select.value;
+            const themes = Array.from(new Set(tickets.map(t => t.theme).filter(Boolean)));
+            select.innerHTML = '<option value="ALL">All QA Themes</option>';
+            themes.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t;
+                opt.innerText = t;
+                select.appendChild(opt);
+            });
+            select.value = currentVal || 'ALL';
+        }
+
+        function renderTicketTable() {
+            const tbody = document.getElementById('ticket-table-body');
+            const emptyState = document.getElementById('table-empty-state');
+            if (!tbody) return;
+
+            const searchTerm = (document.getElementById('search-filter')?.value || '').toLowerCase();
+            const colorFilter = document.getElementById('status-color-filter')?.value || 'ALL';
+            const themeFilter = document.getElementById('theme-filter')?.value || 'ALL';
+
+            const filtered = tickets.filter(t => {
+                const matchesSearch = !searchTerm || 
+                    t.id.toLowerCase().includes(searchTerm) ||
+                    t.subject.toLowerCase().includes(searchTerm) ||
+                    t.assignee.toLowerCase().includes(searchTerm) ||
+                    t.theme.toLowerCase().includes(searchTerm);
+
+                const status = getSlaStatus(t.updated);
+                const matchesColor = colorFilter === 'ALL' || status === colorFilter;
+                const matchesTheme = themeFilter === 'ALL' || t.theme === themeFilter;
+
+                return matchesSearch && matchesColor && matchesTheme;
+            });
+
+            tbody.innerHTML = '';
+
+            if (filtered.length === 0) {
+                emptyState?.classList.remove('hidden');
+                return;
+            } else {
+                emptyState?.classList.add('hidden');
+            }
+
+            filtered.forEach(t => {
+                const status = getSlaStatus(t.updated);
+                const hrs = getHoursSinceUpdated(t.updated);
+                const age = getTicketAge(t.requested);
+
+                let rowClass = 'ticket-green';
+                if (status === 'YELLOW') rowClass = 'ticket-yellow';
+                if (status === 'RED') rowClass = 'ticket-red';
+
+                const tr = document.createElement('tr');
+                tr.className = `${rowClass} transition hover:opacity-90 font-medium text-[11px]`;
+                tr.innerHTML = `
+                    <td class="p-3 font-bold">${escapeHtml(t.id)}</td>
+                    <td class="p-3 font-semibold text-pink-950">${escapeHtml(t.subject)}</td>
+                    <td class="p-3">${escapeHtml(t.requester)}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded-md font-bold text-[10px] ${getPriorityBadgeClass(t.priority)}">${escapeHtml(t.priority)}</span></td>
+                    <td class="p-3 whitespace-nowrap">${formatDate(t.requested)}</td>
+                    <td class="p-3 whitespace-nowrap">${formatDate(t.updated)}</td>
+                    <td class="p-3 font-bold">${escapeHtml(t.assignee)}</td>
+                    <td class="p-3 max-w-[200px] truncate" title="${escapeHtml(t.missed)}">${escapeHtml(t.missed)}</td>
+                    <td class="p-3 max-w-[200px] truncate" title="${escapeHtml(t.shouldDone)}">${escapeHtml(t.shouldDone)}</td>
+                    <td class="p-3 font-semibold">${escapeHtml(t.theme)}</td>
+                    <td class="p-3 max-w-[200px] truncate" title="${escapeHtml(t.notes)}">${escapeHtml(t.notes)}</td>
+                    <td class="p-3 text-center font-bold">${hrs} h</td>
+                    <td class="p-3 text-center font-medium">${age}</td>
+                    <td class="p-3 text-center space-x-1 whitespace-nowrap">
+                        <button onclick="viewTicketModal('${escapeHtml(t.id)}')" class="p-1.5 bg-white text-pink-700 hover:bg-pink-100 rounded-lg shadow-sm border border-pink-200" title="View Details">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                        <button onclick="deleteTicket('${escapeHtml(t.id)}')" class="p-1.5 bg-white text-rose-600 hover:bg-rose-100 rounded-lg shadow-sm border border-rose-200" title="Delete Ticket">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderAssigneeGroupedView() {
+            const container = document.getElementById('assignee-cards-container');
+            if (!container) return;
+
+            if (tickets.length === 0) {
+                container.innerHTML = `
+                    <div class="p-12 text-center bg-white rounded-2xl border border-pink-200">
+                        <p class="text-xs font-bold text-pink-950">No ticket data available for grouping</p>
+                        <p class="text-xs text-slate-500">Paste and submit Zendesk tickets to view assignee performance.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const grouped = {};
+            tickets.forEach(t => {
+                const name = t.assignee || 'Unassigned';
+                if (!grouped[name]) grouped[name] = [];
+                grouped[name].push(t);
+            });
+
+            container.innerHTML = '';
+
+            Object.keys(grouped).forEach(assignee => {
+                const list = grouped[assignee];
+                let green = 0, yellow = 0, red = 0;
+                list.forEach(t => {
+                    const st = getSlaStatus(t.updated);
+                    if (st === 'GREEN') green++;
+                    if (st === 'YELLOW') yellow++;
+                    if (st === 'RED') red++;
+                });
+
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-2xl border border-pink-200 shadow-sm space-y-4";
+                card.innerHTML = `
+                    <div class="flex items-center justify-between border-b border-pink-100 pb-3">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-full bg-pink-100 text-pink-700 font-bold flex items-center justify-center text-xs">
+                                ${escapeHtml(assignee.charAt(0).toUpperCase())}
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-bold text-pink-950">${escapeHtml(assignee)}</h3>
+                                <p class="text-[11px] text-slate-500">${list.length} Evaluated Ticket${list.length > 1 ? 's' : ''}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 text-xs font-semibold">
+                            <span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800">${green} Fresh</span>
+                            <span class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800">${yellow} Stale</span>
+                            <span class="px-2.5 py-1 rounded-full bg-rose-100 text-rose-800">${red} Critical</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        ${list.map(t => {
+                            const st = getSlaStatus(t.updated);
+                            let colorBadge = 'bg-emerald-100 text-emerald-800';
+                            if (st === 'YELLOW') colorBadge = 'bg-amber-100 text-amber-800';
+                            if (st === 'RED') colorBadge = 'bg-rose-100 text-rose-800';
+
+                            return `
+                                <div class="p-3 bg-pink-50/50 rounded-xl border border-pink-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                                    <div>
+                                        <span class="font-bold text-pink-900">[${escapeHtml(t.id)}]</span>
+                                        <span class="font-semibold text-slate-800 ml-1">${escapeHtml(t.subject)}</span>
+                                        <div class="text-[11px] text-slate-500 mt-0.5">
+                                            <strong>Missed:</strong> ${escapeHtml(t.missed)}
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2 whitespace-nowrap">
+                                        <span class="px-2 py-0.5 rounded ${colorBadge} font-bold text-[10px]">${st}</span>
+                                        <button onclick="viewTicketModal('${escapeHtml(t.id)}')" class="px-2.5 py-1 bg-white border border-pink-200 rounded-lg text-pink-700 hover:bg-pink-100 font-semibold text-[11px]">
+                                            Details
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function initAnalyticsCharts() {
+            updateAnalyticsCharts();
+        }
+
+        function updateAnalyticsCharts() {
+            const totalEl = document.getElementById('analytics-total');
+            if (totalEl) totalEl.innerText = tickets.length;
+
+            let green = 0, yellow = 0, red = 0;
+            const themeCounts = {};
+
+            tickets.forEach(t => {
+                const st = getSlaStatus(t.updated);
+                if (st === 'GREEN') green++;
+                if (st === 'YELLOW') yellow++;
+                if (st === 'RED') red++;
+
+                const theme = t.theme || 'Uncategorized';
+                themeCounts[theme] = (themeCounts[theme] || 0) + 1;
+            });
+
+            const grEl = document.getElementById('analytics-green');
+            const ylEl = document.getElementById('analytics-yellow');
+            const rdEl = document.getElementById('analytics-red');
+
+            if (grEl) grEl.innerText = green;
+            if (ylEl) ylEl.innerText = yellow;
+            if (rdEl) rdEl.innerText = red;
+
+            // Theme Chart
+            const themeCanvas = document.getElementById('themeChart');
+            if (themeCanvas) {
+                if (themeChartInstance) themeChartInstance.destroy();
+                themeChartInstance = new Chart(themeCanvas, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(themeCounts).length > 0 ? Object.keys(themeCounts) : ['No Data'],
+                        datasets: [{
+                            data: Object.values(themeCounts).length > 0 ? Object.values(themeCounts) : [1],
+                            backgroundColor: [
+                                '#db2777', '#f43f5e', '#ec4899', '#be185d', 
+                                '#831843', '#f472b6', '#fb7185', '#9d174d'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'right' } }
+                    }
+                });
+            }
+
+            // Priority Chart
+            const priorityCanvas = document.getElementById('priorityChart');
+            if (priorityCanvas) {
+                if (priorityChartInstance) priorityChartInstance.destroy();
+
+                const prioData = { Low: 0, Medium: 0, High: 0, Urgent: 0 };
+                tickets.forEach(t => {
+                    if (prioData[t.priority] !== undefined) prioData[t.priority]++;
+                });
+
+                priorityChartInstance = new Chart(priorityCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(prioData),
+                        datasets: [{
+                            label: 'Tickets count',
+                            data: Object.values(prioData),
+                            backgroundColor: '#db2777'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                    }
+                });
+            }
+        }
+
+        function exportToExcel() {
+            if (tickets.length === 0) {
+                alert('No ticket data to export!');
+                return;
+            }
+
+            const headers = [
+                "ID", "Subject", "Requester", "Priority", 
+                "Requested (Date opened)", "Updated (Date last update)", "Assignee", 
+                "What was missed", "What should have been done", "QA Theme", 
+                "QA Notes", "Hours Since Updated", "Ticket age"
+            ];
+
+            const data = [headers];
+
+            tickets.forEach(t => {
+                const hrs = getHoursSinceUpdated(t.updated);
+                const age = getTicketAge(t.requested);
+                data.push([
+                    t.id,
+                    t.subject,
+                    t.requester,
+                    t.priority,
+                    formatDate(t.requested),
+                    formatDate(t.updated),
+                    t.assignee,
+                    t.missed,
+                    t.shouldDone,
+                    t.theme,
+                    t.notes,
+                    hrs,
+                    age
+                ]);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(data);
+
+            tickets.forEach((t, index) => {
+                const rowIndex = index + 1; // skip header
+                const status = getSlaStatus(t.updated);
+                let fillColor = "ECFDF5"; // Emerald light green
+                if (status === 'YELLOW') fillColor = "FFFBEB"; // Amber light yellow
+                if (status === 'RED') fillColor = "FEF2F2"; // Rose light red
+
+                for (let col = 0; col < headers.length; col++) {
+                    const cellAddress = XLSX.utils.encode_cell({ r: rowIndex, c: col });
+                    if (!ws[cellAddress]) continue;
+                    ws[cellAddress].s = {
+                        fill: { fgColor: { rgb: fillColor } },
+                        font: { name: "Calibri", sz: 10 }
+                    };
+                }
+            });
+
+            for (let col = 0; col < headers.length; col++) {
+                const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+                if (ws[cellAddress]) {
+                    ws[cellAddress].s = {
+                        fill: { fgColor: { rgb: "831843" } },
+                        font: { name: "Calibri", sz: 11, bold: true, color: { rgb: "FFFFFF" } },
+                        alignment: { horizontal: "center", vertical: "center" }
+                    };
+                }
+            }
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "QA Analysis");
+            XLSX.writeFile(wb, `QA_Ticket_Analysis_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        }
+
+        function copyTableForGoogleSheets() {
+            if (tickets.length === 0) {
+                alert('No tickets available to copy!');
+                return;
+            }
+
+            const headers = [
+                "ID", "Subject", "Requester", "Priority", 
+                "Requested (Date opened)", "Updated (Date last update)", "Assignee", 
+                "What was missed", "What should have been done", "QA Theme", 
+                "QA Notes", "Hours Since Updated", "Ticket age"
+            ];
+
+            let tsvContent = headers.join('\t') + '\n';
+
+            tickets.forEach(t => {
+                const hrs = getHoursSinceUpdated(t.updated);
+                const age = getTicketAge(t.requested);
+                const row = [
+                    t.id,
+                    t.subject,
+                    t.requester,
+                    t.priority,
+                    formatDate(t.requested),
+                    formatDate(t.updated),
+                    t.assignee,
+                    cleanForTsv(t.missed),
+                    cleanForTsv(t.shouldDone),
+                    t.theme,
+                    cleanForTsv(t.notes),
+                    hrs,
+                    age
+                ];
+                tsvContent += row.join('\t') + '\n';
+            });
+
+            // Copy using fallback textarea for maximum iframe / Mac compatibility
+            const tempArea = document.createElement('textarea');
+            tempArea.value = tsvContent;
+            document.body.appendChild(tempArea);
+            tempArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempArea);
+
+            alert('📋 Data copied to clipboard!\n\nNow open Google Sheets, click cell A1, and press ⌘ + V to paste.');
+        }
+
+        function exportToCsv() {
+            if (tickets.length === 0) {
+                alert('No ticket data to export!');
+                return;
+            }
+
+            const headers = [
+                "ID", "Subject", "Requester", "Priority", 
+                "Requested (Date opened)", "Updated (Date last update)", "Assignee", 
+                "What was missed", "What should have been done", "QA Theme", 
+                "QA Notes", "Hours Since Updated", "Ticket age"
+            ];
+
+            let csvContent = headers.map(h => `"${h}"`).join(',') + '\n';
+
+            tickets.forEach(t => {
+                const hrs = getHoursSinceUpdated(t.updated);
+                const age = getTicketAge(t.requested);
+                const row = [
+                    t.id, t.subject, t.requester, t.priority,
+                    formatDate(t.requested), formatDate(t.updated), t.assignee,
+                    t.missed, t.shouldDone, t.theme, t.notes, hrs, age
+                ];
+                csvContent += row.map(val => `"${String(val || '').replace(/"/g, '""')}"`).join(',') + '\n';
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `QA_Ticket_Analysis_${new Date().toISOString().slice(0, 10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function cleanForTsv(str) {
+            if (!str) return '';
+            return String(str).replace(/\r?\n|\r/g, ' ').replace(/\t/g, ' ');
+        }
+
+        function clearAllTickets() {
+            if (confirm('Are you sure you want to clear all tickets from storage?')) {
+                tickets = [];
+                saveTicketsToStorage();
+                updateGlobalStats();
+                renderTicketTable();
+                renderAssigneeGroupedView();
+                updateAnalyticsCharts();
+            }
+        }
+
         function viewTicketModal(ticketId) {
             const t = tickets.find(x => x.id === ticketId);
             if (!t) return;
@@ -1330,25 +1700,31 @@ ${JSON.stringify(tickets, null, 2)}`;
                 </div>` : ''}
             `;
 
-            modal.classList.remove('hidden');
+            modal?.classList.remove('hidden');
         }
 
         function closeModal() {
-            document.getElementById('ticket-modal').classList.add('hidden');
+            document.getElementById('ticket-modal')?.classList.add('hidden');
         }
 
         function deleteTicket(ticketId) {
             if (confirm(`Are you sure you want to delete ticket ${ticketId}?`)) {
                 tickets = tickets.filter(t => t.id !== ticketId);
                 saveTicketsToStorage();
+                updateGlobalStats();
                 renderTicketTable();
+                renderAssigneeGroupedView();
+                updateAnalyticsCharts();
             }
         }
 
         function resetFilters() {
-            document.getElementById('search-filter').value = '';
-            document.getElementById('status-color-filter').value = 'ALL';
-            document.getElementById('theme-filter').value = 'ALL';
+            const sInput = document.getElementById('search-filter');
+            const cInput = document.getElementById('status-color-filter');
+            const tInput = document.getElementById('theme-filter');
+            if (sInput) sInput.value = '';
+            if (cInput) cInput.value = 'ALL';
+            if (tInput) tInput.value = 'ALL';
             renderTicketTable();
         }
 
