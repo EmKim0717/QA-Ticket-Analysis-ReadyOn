@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QA Ticket Analysis</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pink: {
+                            50: '#fdf2f8',
+                            100: '#fce7f3',
+                            200: '#fbcfe8',
+                            300: '#f472b6',
+                            400: '#f43f5e',
+                            500: '#ec4899',
+                            600: '#db2777',
+                            700: '#be185d',
+                            800: '#9d174d',
+                            900: '#831843',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for QA Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- XLSX library with style support for styled Excel exports -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fdf2f8; /* Pink 50 */
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #fce7f3;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #f472b6;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #db2777;
+        }
+        .ticket-green {
+            background-color: #ecfdf5 !important; /* Emerald 50 */
+            border-left: 4px solid #10b981 !important;
+        }
+        .ticket-yellow {
+            background-color: #fffbeb !important; /* Amber 50 */
+            border-left: 4px solid #f59e0b !important;
+        }
+        .ticket-red {
+            background-color: #fef2f2 !important; /* Rose 50 */
+            border-left: 4px solid #ef4444 !important;
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-white border-b border-pink-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-pink-500 to-rose-400 flex items-center justify-center text-white shadow-md shadow-pink-200">
+                    <i class="fa-solid font-bold fa-clipboard-check text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-pink-900 leading-tight">QA Ticket Analysis</h1>
+                    <p class="text-xs text-pink-600 font-medium">Co-Quality Analyst Workstation</p>
+                </div>
+            </div>
+
+            <!-- Stats Header Quick Badges -->
+            <div class="hidden md:flex items-center space-x-3 text-xs font-medium">
+                <span class="px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="stat-green-count">0</span> Fresh (&le;48h)
+                </span>
+                <span class="px-3 py-1.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                    <span id="stat-yellow-count">0</span> Attention (&gt;48h)
+                </span>
+                <span class="px-3 py-1.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-rose-500 animate-bounce"></span>
+                    <span id="stat-red-count">0</span> Critical (&gt;96h)
+                </span>
+            </div>
+
+            <!-- Header Action Buttons -->
+            <div class="flex items-center space-x-2">
+                <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-lg text-sm font-semibold shadow transition flex items-center gap-2">
+                    <i class="fa-solid fa-file-excel"></i>
+                    <span>Export XLSX</span>
+                </button>
+                <button onclick="toggleChatDrawer()" class="bg-pink-600 hover:bg-pink-700 text-white px-3.5 py-2 rounded-lg text-sm font-semibold shadow transition flex items-center gap-2 relative">
+                    <i class="fa-solid fa-robot"></i>
+                    <span class="hidden sm:inline">AI Co-Analyst</span>
+                    <span class="flex h-2.5 w-2.5 absolute -top-1 -right-1">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-pink-500"></span>
+                    </span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Navigation Tabs -->
+    <nav class="bg-pink-100/70 border-b border-pink-200 px-4 sm:px-8">
+        <div class="max-w-7xl mx-auto flex space-x-1 sm:space-x-4 overflow-x-auto py-2">
+            <button onclick="switchTab('analyze')" id="tab-btn-analyze" class="px-4 py-2 text-sm font-semibold rounded-lg text-pink-700 hover:bg-pink-200/60 transition flex items-center gap-2 whitespace-nowrap active-tab bg-white text-pink-700 shadow-sm border border-pink-200">
+                <i class="fa-solid fa-magnifying-glass-chart"></i>
+                <span>Add & Analyze Ticket</span>
+            </button>
+            <button onclick="switchTab('list')" id="tab-btn-list" class="px-4 py-2 text-sm font-semibold rounded-lg text-pink-700 hover:bg-pink-200/60 transition flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-list-check"></i>
+                <span>All Tickets List</span>
+                <span id="badge-total-tickets" class="bg-pink-200 text-pink-800 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+            </button>
+            <button onclick="switchTab('grouped')" id="tab-btn-grouped" class="px-4 py-2 text-sm font-semibold rounded-lg text-pink-700 hover:bg-pink-200/60 transition flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-users-gear"></i>
+                <span>Grouped by Assignee</span>
+            </button>
+            <button onclick="switchTab('analytics')" id="tab-btn-analytics" class="px-4 py-2 text-sm font-semibold rounded-lg text-pink-700 hover:bg-pink-200/60 transition flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span>QA Themes & Analytics</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+        <!-- TAB 1: ADD & ANALYZE TICKET FORM -->
+        <section id="view-analyze" class="space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-pink-200 p-6">
+                <div class="flex items-center justify-between pb-4 border-b border-pink-100 mb-6">
+                    <div>
+                        <h2 class="text-lg font-bold text-pink-950 flex items-center gap-2">
+                            <i class="fa-solid fa-wand-magic-sparkles text-pink-500"></i>
+                            QA Ticket Analyzer & AI Co-Analyst
+                        </h2>
+                        <p class="text-xs text-slate-500">Paste conversation, ticket details, or email threads. Your AI Co-Analyst will evaluate what was missed, recommendations, QA Theme, and notes.</p>
+                    </div>
+                    <button onclick="fillSampleData()" class="text-xs bg-pink-50 text-pink-700 hover:bg-pink-100 px-3 py-1.5 rounded-lg border border-pink-200 font-semibold transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-lightbulb text-amber-500"></i> Load Sample Ticket
+                    </button>
+                </div>
+
+                <form id="qa-input-form" onsubmit="handleTicketSubmit(event)" class="space-y-5">
+                    <!-- Top Fields Row -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Ticket ID <span class="text-pink-500">*</span></label>
+                            <input type="text" id="input-id" placeholder="e.g. TCK-8492" required class="w-full px-3 py-2 text-sm border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-pink-50/30">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Assignee / Agent Name</label>
+                            <input type="text" id="input-assignee" placeholder="e.g. Sarah Jenkins" class="w-full px-3 py-2 text-sm border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-pink-50/30">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Requester / Customer Name</label>
+                            <input type="text" id="input-requester" placeholder="e.g. John Doe (Acme Corp)" class="w-full px-3 py-2 text-sm border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-pink-50/30">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Priority</label>
+                            <select id="input-priority" class="w-full px-3 py-2 text-sm border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-pink-50/30">
+                                <option value="Low">Low</option>
+                                <option value="Medium" selected>Medium</option>
+                                <option value="High">High</option>
+                                <option value="Urgent">Urgent</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Short Description Box (Required as per prompt) -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">
+                            Short Description / Subject <span class="text-pink-500">*</span>
+                        </label>
+                        <input type="text" id="input-subject" placeholder="Brief summary of the customer issue..." required class="w-full px-3.5 py-2.5 text-sm border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-pink-50/20 font-medium">
+                    </div>
+
+                    <!-- Ticket Conversation / Information Box (Required separate box) -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1 flex justify-between items-center">
+                            <span>Ticket Information / Conversation Thread / Interaction Details <span class="text-pink-500">*</span></span>
+                            <span class="text-pink-600 font-normal">Full context helps AI perform thorough QA</span>
+                        </label>
+                        <textarea id="input-conversation" rows="5" placeholder="Paste full email thread, chat transcript, phone call logs, or ticket history here..." required class="w-full p-3.5 text-sm border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-pink-50/20 font-mono text-xs leading-relaxed"></textarea>
+                    </div>
+
+                    <!-- Dates & SLA Timestamps -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-pink-50/60 p-4 rounded-xl border border-pink-200">
+                        <div>
+                            <label class="block text-xs font-semibold text-pink-900 mb-1">Requested Date (Date Opened)</label>
+                            <input type="datetime-local" id="input-requested" class="w-full px-3 py-2 text-sm border border-pink-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-pink-900 mb-1">Updated Date (Date Last Update)</label>
+                            <input type="datetime-local" id="input-updated" class="w-full px-3 py-2 text-sm border border-pink-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white">
+                        </div>
+                    </div>
+
+                    <!-- AI Trigger Button Bar -->
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+                        <button type="button" onclick="runAiAnalysis()" id="btn-ai-analyze" class="w-full sm:w-auto bg-gradient-to-r from-pink-600 to-rose-500 hover:from-pink-700 hover:to-rose-600 text-white font-semibold px-6 py-2.5 rounded-xl text-sm shadow-md shadow-pink-200 transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-microchip"></i>
+                            <span>🤖 Auto-Fill with AI Co-Analyst</span>
+                        </button>
+                        <span class="text-xs text-slate-400 hidden sm:inline">or manually fill the QA fields below:</span>
+                    </div>
+
+                    <!-- QA Findings Section (Populated by AI or Manual) -->
+                    <div class="border-t border-pink-200 pt-5 mt-4 space-y-4">
+                        <h3 class="text-sm font-bold text-pink-900 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-pink-600"></i>
+                            QA Evaluation & Findings (Co-Analyst Input)
+                        </h3>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- What was missed -->
+                            <div>
+                                <label class="block text-xs font-semibold text-red-700 mb-1">What was missed?</label>
+                                <textarea id="input-missed" rows="3" placeholder="Specify process gaps, unaddressed questions, policy violations, or missed steps..." class="w-full p-3 text-sm border border-red-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 bg-red-50/20"></textarea>
+                            </div>
+
+                            <!-- What should have been done -->
+                            <div>
+                                <label class="block text-xs font-semibold text-emerald-700 mb-1">What should have been done?</label>
+                                <textarea id="input-should-done" rows="3" placeholder="Define correct troubleshooting steps, ideal resolution pathway, or proper response..." class="w-full p-3 text-sm border border-emerald-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-emerald-50/20"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <!-- QA Theme -->
+                            <div>
+                                <label class="block text-xs font-semibold text-pink-900 mb-1">QA Theme / Category</label>
+                                <select id="input-theme" class="w-full px-3 py-2 text-sm border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white">
+                                    <option value="Escalation & SLA">Escalation & SLA</option>
+                                    <option value="Product Knowledge">Product Knowledge</option>
+                                    <option value="Soft Skills & Tone">Soft Skills & Tone</option>
+                                    <option value="Tool / System Usage">Tool / System Usage</option>
+                                    <option value="Verification & Security">Verification & Security</option>
+                                    <option value="First Contact Resolution">First Contact Resolution</option>
+                                    <option value="Proper Documentation">Proper Documentation</option>
+                                    <option value="Perfect Handling">Perfect Handling / No Error</option>
+                                </select>
+                            </div>
+
+                            <!-- QA Notes -->
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-semibold text-pink-900 mb-1">QA Notes & Coaching Tips</label>
+                                <input type="text" id="input-notes" placeholder="Constructive feedback, positive callouts, or coaching notes for agent one-on-one..." class="w-full px-3.5 py-2 text-sm border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="pt-4 flex justify-end">
+                        <button type="submit" class="bg-pink-700 hover:bg-pink-800 text-white font-bold px-8 py-3 rounded-xl shadow-lg shadow-pink-200 transition flex items-center gap-2">
+                            <i class="fa-solid fa-plus-circle"></i>
+                            <span>Save Ticket to Analysis List</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- TAB 2: TICKETS LIST TABLE -->
+        <section id="view-list" class="space-y-4 hidden">
+            <!-- Filter & Search Controls Header -->
+            <div class="bg-white p-4 rounded-2xl border border-pink-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="relative w-full md:w-96">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-pink-400 text-sm"></i>
+                    <input type="text" id="search-filter" oninput="renderTicketTable()" placeholder="Search ID, Subject, Assignee, QA Theme..." class="w-full pl-10 pr-4 py-2 text-sm border border-pink-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 bg-pink-50/20">
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 w-full md:w-auto text-xs font-semibold">
+                    <!-- Status Filter -->
+                    <select id="status-color-filter" onchange="renderTicketTable()" class="px-3 py-2 border border-pink-200 rounded-xl bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-pink-500">
+                        <option value="ALL">All SLA Colors</option>
+                        <option value="GREEN">Green (&le; 48 hrs)</option>
+                        <option value="YELLOW">Yellow (&gt; 48-96 hrs)</option>
+                        <option value="RED">Red (&gt; 96 hrs)</option>
+                    </select>
+
+                    <!-- Theme Filter -->
+                    <select id="theme-filter" onchange="renderTicketTable()" class="px-3 py-2 border border-pink-200 rounded-xl bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-pink-500">
+                        <option value="ALL">All QA Themes</option>
+                    </select>
+
+                    <button onclick="resetFilters()" class="text-pink-600 hover:text-pink-800 px-3 py-2 rounded-xl bg-pink-50 border border-pink-200 transition">
+                        Reset Filters
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table Container -->
+            <div class="bg-white rounded-2xl shadow-sm border border-pink-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-gradient-to-r from-pink-800 to-pink-900 text-white font-bold uppercase tracking-wider text-[11px] divide-x divide-pink-700">
+                                <th class="p-3">ID</th>
+                                <th class="p-3 min-w-[160px]">Subject</th>
+                                <th class="p-3">Requester</th>
+                                <th class="p-3">Priority</th>
+                                <th class="p-3 min-w-[130px]">Requested (Opened)</th>
+                                <th class="p-3 min-w-[130px]">Updated (Last)</th>
+                                <th class="p-3">Assignee</th>
+                                <th class="p-3 min-w-[180px]">What was missed</th>
+                                <th class="p-3 min-w-[180px]">What should have been done</th>
+                                <th class="p-3">QA Theme</th>
+                                <th class="p-3 min-w-[180px]">QA Notes</th>
+                                <th class="p-3 text-center">Hours Since Updated</th>
+                                <th class="p-3 text-center">Ticket Age</th>
+                                <th class="p-3 text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ticket-table-body" class="divide-y divide-pink-100">
+                            <!-- Dynamic Content Rendered via JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Empty State Placeholder -->
+                <div id="table-empty-state" class="hidden p-12 text-center space-y-3">
+                    <div class="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto text-pink-500 text-2xl">
+                        <i class="fa-solid fa-folder-open"></i>
+                    </div>
+                    <p class="text-sm font-semibold text-pink-900">No QA Tickets found</p>
+                    <p class="text-xs text-slate-500">Try adjusting your filter search or add a new ticket to analyze.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: GROUPED BY ASSIGNEE VIEW -->
+        <section id="view-grouped" class="space-y-6 hidden">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-bold text-pink-950">Assignee Performance & QA Grouping</h2>
+                    <p class="text-xs text-slate-500">Grouped tickets and coaching evaluation per team member.</p>
+                </div>
+            </div>
+
+            <!-- Dynamic Assignee Cards Grid -->
+            <div id="assignee-cards-container" class="grid grid-cols-1 gap-6">
+                <!-- Rendered dynamically -->
+            </div>
+        </section>
+
+        <!-- TAB 4: QA THEMES & ANALYTICS -->
+        <section id="view-analytics" class="space-y-6 hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-2xl border border-pink-200 shadow-sm flex items-center space-x-4">
+                    <div class="w-12 h-12 rounded-xl bg-pink-100 text-pink-600 flex items-center justify-center text-xl font-bold">
+                        <i class="fa-solid fa-ticket"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-semibold uppercase">Total Evaluated</p>
+                        <h3 id="analytics-total" class="text-2xl font-black text-pink-950">0</h3>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-emerald-200 shadow-sm flex items-center space-x-4">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl font-bold">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-semibold uppercase">&le;48h Fresh SLA</p>
+                        <h3 id="analytics-green" class="text-2xl font-black text-emerald-600">0</h3>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-amber-200 shadow-sm flex items-center space-x-4">
+                    <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl font-bold">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-semibold uppercase">&gt;48h-96h Stale</p>
+                        <h3 id="analytics-yellow" class="text-2xl font-black text-amber-600">0</h3>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-rose-200 shadow-sm flex items-center space-x-4">
+                    <div class="w-12 h-12 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center text-xl font-bold">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-semibold uppercase">&gt;96h Critical Overdue</p>
+                        <h3 id="analytics-red" class="text-2xl font-black text-rose-600">0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Charts Row -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Theme Breakdown Chart -->
+                <div class="bg-white p-6 rounded-2xl border border-pink-200 shadow-sm">
+                    <h3 class="text-sm font-bold text-pink-900 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie text-pink-500"></i> QA Missed Themes Breakdown
+                    </h3>
+                    <div class="relative h-64">
+                        <canvas id="themeChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Priority vs SLA Status Chart -->
+                <div class="bg-white p-6 rounded-2xl border border-pink-200 shadow-sm">
+                    <h3 class="text-sm font-bold text-pink-900 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-bar text-pink-500"></i> SLA Aging by Priority
+                    </h3>
+                    <div class="relative h-64">
+                        <canvas id="priorityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- AI CHATBOT DRAWER PANEL -->
+    <aside id="chat-drawer" class="fixed inset-y-0 right-0 w-full sm:w-[420px] bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out border-l border-pink-200 flex flex-col">
+        <!-- Chat Header -->
+        <div class="p-4 bg-gradient-to-r from-pink-800 to-pink-900 text-white flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-pink-100 font-bold">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold">QA Co-Analyst AI Assistant</h3>
+                    <p class="text-[10px] text-pink-200">Powered by Gemini 3 Flash • Ticket Advisor</p>
+                </div>
+            </div>
+            <button onclick="toggleChatDrawer()" class="text-pink-200 hover:text-white p-1 rounded-lg">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <!-- Chat Messages Container -->
+        <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3 bg-pink-50/40 text-xs">
+            <!-- Initial AI Welcome Message -->
+            <div class="flex gap-2.5">
+                <div class="w-7 h-7 rounded-full bg-pink-600 text-white flex items-center justify-center flex-shrink-0 text-xs">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+                <div class="bg-white p-3 rounded-2xl rounded-tl-none border border-pink-200 text-slate-700 shadow-sm space-y-1 max-w-[85%]">
+                    <p class="font-bold text-pink-900 text-[11px]">Co-QA Analyst AI</p>
+                    <p>Hello! I am your interactive Co-Quality Analyst. Ask me anything about your tickets, request coaching email drafts for assignees, or inquire about recurring QA themes!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Quick Prompt Recommendations -->
+        <div class="p-2 border-t border-pink-100 bg-white flex gap-1.5 overflow-x-auto text-[10px]">
+            <button onclick="sendQuickPrompt('Summarize the top QA misses across all tickets.')" class="px-2.5 py-1 bg-pink-50 hover:bg-pink-100 text-pink-700 rounded-full border border-pink-200 whitespace-nowrap">
+                💡 Top QA Misses
+            </button>
+            <button onclick="sendQuickPrompt('Which assignees need urgent coaching?')" class="px-2.5 py-1 bg-pink-50 hover:bg-pink-100 text-pink-700 rounded-full border border-pink-200 whitespace-nowrap">
+                🎯 Urgent Coaching
+            </button>
+            <button onclick="sendQuickPrompt('Draft a 1-on-1 QA coaching template for agents.')" class="px-2.5 py-1 bg-pink-50 hover:bg-pink-100 text-pink-700 rounded-full border border-pink-200 whitespace-nowrap">
+                📝 Coaching Template
+            </button>
+        </div>
+
+        <!-- Chat Input Form -->
+        <form onsubmit="handleChatMessageSubmit(event)" class="p-3 bg-white border-t border-pink-200 flex items-center space-x-2">
+            <input type="text" id="chat-input" placeholder="Ask your Co-Analyst..." required class="flex-1 px-3 py-2 text-xs border border-pink-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 bg-pink-50/20">
+            <button type="submit" id="chat-send-btn" class="bg-pink-600 hover:bg-pink-700 text-white p-2.5 rounded-xl transition shadow">
+                <i class="fa-solid fa-paper-plane text-xs"></i>
+            </button>
+        </form>
+    </aside>
+
+    <!-- TICKET DETAIL MODAL -->
+    <div id="ticket-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-pink-200 shadow-2xl p-6 space-y-4">
+            <div class="flex items-start justify-between border-b border-pink-100 pb-3">
+                <div>
+                    <span id="modal-ticket-id" class="text-xs font-bold px-2.5 py-1 rounded bg-pink-100 text-pink-800">TCK-0000</span>
+                    <h2 id="modal-ticket-subject" class="text-lg font-bold text-pink-950 mt-1">Ticket Subject</h2>
+                </div>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div id="modal-body" class="space-y-4 text-xs">
+                <!-- Modal details dynamically loaded -->
+            </div>
+
+            <div class="flex justify-end border-t border-pink-100 pt-3">
+                <button onclick="closeModal()" class="px-4 py-2 bg-pink-100 hover:bg-pink-200 text-pink-800 font-semibold rounded-lg text-xs">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State Storage
+        let tickets = [];
+        let themeChartInstance = null;
+        let priorityChartInstance = null;
+
+        // Initial Seed Mock Tickets to populate state gracefully
+        const initialMockTickets = [
+            {
+                id: 'TCK-9201',
+                subject: 'Customer charged twice on annual renewal subscription',
+                requester: 'Amanda Vance (TechCorp)',
+                priority: 'High',
+                requested: new Date(Date.now() - (30 * 3600 * 1000)).toISOString().slice(0, 16), // 30 hrs ago (Green)
+                updated: new Date(Date.now() - (12 * 3600 * 1000)).toISOString().slice(0, 16), // 12 hrs ago (Green)
+                assignee: 'Sarah Jenkins',
+                missed: 'Failed to issue refund immediately and did not verify duplicate transaction ID in Stripe payment gateway.',
+                shouldDone: 'Cross-reference billing logs, execute direct refund via billing portal, and issue formal apology credit.',
+                theme: 'Tool / System Usage',
+                notes: 'Sarah was polite but skipped standard payment verification workflow. Needs refresher on Stripe dashboard refunds.',
+                conversation: 'Customer: I see two charges of $299 on my account. Please fix this!\nAgent: Hello Amanda, thank you for reaching out. I see your account is active. Let me transfer you to billing.\nCustomer: Is anyone going to refund this?'
+            },
+            {
+                id: 'TCK-8812',
+                subject: 'SAML Single Sign-On authentication failure for domain users',
+                requester: 'David Miller',
+                priority: 'Urgent',
+                requested: new Date(Date.now() - (120 * 3600 * 1000)).toISOString().slice(0, 16), // 120 hrs ago
+                updated: new Date(Date.now() - (60 * 3600 * 1000)).toISOString().slice(0, 16), // 60 hrs ago (Yellow)
+                assignee: 'Mark Rivera',
+                missed: 'Ticket sat idle for over 48 hours without sending an update to customer regarding Tier 3 engineering escalation.',
+                shouldDone: 'Set proactive follow-up reminder, inform customer of ongoing SAML log investigation within 24 hours.',
+                theme: 'Escalation & SLA',
+                notes: 'Mark handled technical diagnosis well, but completely missed SLA proactive update guidelines.',
+                conversation: 'Customer: Our entire team is locked out due to SSO errors.\nAgent: Ticket submitted to engineering.\n[No response for 2.5 days]\nCustomer: Any updates on this outage?'
+            },
+            {
+                id: 'TCK-7410',
+                subject: 'API Rate limit exceeded on production webhook integration',
+                requester: 'Evelyn Reed',
+                priority: 'Urgent',
+                requested: new Date(Date.now() - (200 * 3600 * 1000)).toISOString().slice(0, 16), // 200 hrs ago
+                updated: new Date(Date.now() - (110 * 3600 * 1000)).toISOString().slice(0, 16), // 110 hrs ago (Red)
+                assignee: 'Alex Chen',
+                missed: 'Incorrect advice given regarding rate limit headers; agent recommended lowering payload instead of upgrading tier.',
+                shouldDone: 'Provide accurate API documentation link and explain enterprise tier rate limits.',
+                theme: 'Product Knowledge',
+                notes: 'Inaccurate product guidance led to customer frustration and repeated follow-ups.',
+                conversation: 'Customer: Webhooks returning 429 status code.\nAgent: Please send smaller JSON payloads.\nCustomer: That is not how rate limits work, please escalate.'
+            },
+            {
+                id: 'TCK-9450',
+                subject: 'Password reset request for legacy account administrator',
+                requester: 'Robert Thorne',
+                priority: 'Medium',
+                requested: new Date(Date.now() - (15 * 3600 * 1000)).toISOString().slice(0, 16),
+                updated: new Date(Date.now() - (5 * 3600 * 1000)).toISOString().slice(0, 16), // 5 hrs ago (Green)
+                assignee: 'Sarah Jenkins',
+                missed: 'None. Verification steps were followed perfectly.',
+                shouldDone: 'Performed 2FA identity check, validated account ownership, and sent secure reset link.',
+                theme: 'Perfect Handling',
+                notes: 'Great execution of security protocols and swift empathetic communication.',
+                conversation: 'Customer: Need password reset for admin account.\nAgent: I can help! Please verify the 6-digit pin sent to your phone.\nCustomer: Pin verified.\nAgent: Reset email sent.'
+            }
+        ];
+
+        window.onload = function() {
+            // Load saved tickets or use initial mock data
+            const saved = localStorage.getItem('qa_tickets_data');
+            if (saved) {
+                try {
+                    tickets = JSON.parse(saved);
+                } catch(e) {
+                    tickets = [...initialMockTickets];
+                }
+            } else {
+                tickets = [...initialMockTickets];
+                saveTicketsToStorage();
+            }
+
+            // Set default date inputs for form
+            const nowIso = new Date().toISOString().slice(0, 16);
+            document.getElementById('input-requested').value = nowIso;
+            document.getElementById('input-updated').value = nowIso;
+
+            // Render all UI components
+            updateGlobalStats();
+            populateThemeDropdowns();
+            renderTicketTable();
+            renderAssigneeGroupedView();
+            initAnalyticsCharts();
+        };
+
+        function saveTicketsToStorage() {
+            localStorage.setItem('qa_tickets_data', JSON.stringify(tickets));
+            updateGlobalStats();
+        }
+
+        // Calculates hours elapsed between update date and now
+        function getHoursSinceUpdated(updatedIso) {
+            if (!updatedIso) return 0;
+            const updatedDate = new Date(updatedIso);
+            const now = new Date();
+            const diffMs = now - updatedDate;
+            return Math.max(0, Math.round(diffMs / (1000 * 60 * 60)));
+        }
+
+        // Calculates total ticket age from created/requested date to now
+        function getTicketAge(requestedIso) {
+            if (!requestedIso) return '0 hrs';
+            const reqDate = new Date(requestedIso);
+            const now = new Date();
+            const diffMs = now - reqDate;
+            const hours = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60)));
+            const days = Math.floor(hours / 24);
+            const remHours = hours % 24;
+
+            if (days > 0) {
+                return `${days}d ${remHours}h`;
+            }
+            return `${hours} hrs`;
+        }
+
+        // Color coding rule logic:
+        // <= 48 hrs -> GREEN
+        // > 48 hrs & <= 96 hrs -> YELLOW
+        // > 96 hrs -> RED
+        function getSlaCategory(hours) {
+            if (hours <= 48) return 'GREEN';
+            if (hours <= 96) return 'YELLOW';
+            return 'RED';
+        }
+
+        function getSlaRowClass(hours) {
+            const cat = getSlaCategory(hours);
+            if (cat === 'GREEN') return 'ticket-green';
+            if (cat === 'YELLOW') return 'ticket-yellow';
+            return 'ticket-red';
+        }
+
+        function switchTab(tabName) {
+            const tabs = ['analyze', 'list', 'grouped', 'analytics'];
+            tabs.forEach(t => {
+                const view = document.getElementById(`view-${t}`);
+                const btn = document.getElementById(`tab-btn-${t}`);
+                if (t === tabName) {
+                    view.classList.remove('hidden');
+                    btn.classList.add('bg-white', 'text-pink-700', 'shadow-sm', 'border', 'border-pink-200');
+                    btn.classList.remove('hover:bg-pink-200/60');
+                } else {
+                    view.classList.add('hidden');
+                    btn.classList.remove('bg-white', 'text-pink-700', 'shadow-sm', 'border', 'border-pink-200');
+                    btn.classList.add('hover:bg-pink-200/60');
+                }
+            });
+
+            if (tabName === 'list') renderTicketTable();
+            if (tabName === 'grouped') renderAssigneeGroupedView();
+            if (tabName === 'analytics') updateAnalyticsDashboard();
+        }
+
+        function updateGlobalStats() {
+            let green = 0, yellow = 0, red = 0;
+            tickets.forEach(t => {
+                const hrs = getHoursSinceUpdated(t.updated);
+                const cat = getSlaCategory(hrs);
+                if (cat === 'GREEN') green++;
+                else if (cat === 'YELLOW') yellow++;
+                else red++;
+            });
+
+            document.getElementById('stat-green-count').innerText = green;
+            document.getElementById('stat-yellow-count').innerText = yellow;
+            document.getElementById('stat-red-count').innerText = red;
+            document.getElementById('badge-total-tickets').innerText = tickets.length;
+        }
+
+        function populateThemeDropdowns() {
+            const themes = [...new Set(tickets.map(t => t.theme))].filter(Boolean);
+            const select = document.getElementById('theme-filter');
+            select.innerHTML = '<option value="ALL">All QA Themes</option>';
+            themes.forEach(th => {
+                select.innerHTML += `<option value="${th}">${th}</option>`;
+            });
+        }
+
+        function handleTicketSubmit(e) {
+            e.preventDefault();
+
+            const newTicket = {
+                id: document.getElementById('input-id').value.trim(),
+                subject: document.getElementById('input-subject').value.trim(),
+                requester: document.getElementById('input-requester').value.trim() || 'N/A',
+                priority: document.getElementById('input-priority').value,
+                requested: document.getElementById('input-requested').value,
+                updated: document.getElementById('input-updated').value,
+                assignee: document.getElementById('input-assignee').value.trim() || 'Unassigned',
+                conversation: document.getElementById('input-conversation').value.trim(),
+                missed: document.getElementById('input-missed').value.trim() || 'None noted.',
+                shouldDone: document.getElementById('input-should-done').value.trim() || 'Follow standard operating procedure.',
+                theme: document.getElementById('input-theme').value,
+                notes: document.getElementById('input-notes').value.trim() || 'No additional notes.'
+            };
+
+            // Replace existing or push
+            const idx = tickets.findIndex(t => t.id.toLowerCase() === newTicket.id.toLowerCase());
+            if (idx >= 0) {
+                tickets[idx] = newTicket;
+            } else {
+                tickets.unshift(newTicket);
+            }
+
+            saveTicketsToStorage();
+            populateThemeDropdowns();
+            alert('QA Ticket successfully saved!');
+            switchTab('list');
+        }
+
+        function fillSampleData() {
+            const randomNum = Math.floor(1000 + Math.random() * 9000);
+            document.getElementById('input-id').value = `TCK-${randomNum}`;
+            document.getElementById('input-assignee').value = 'Rachel Green';
+            document.getElementById('input-requester').value = 'Michael Scott (Dunder Mifflin)';
+            document.getElementById('input-priority').value = 'High';
+            document.getElementById('input-subject').value = 'Unable to download export report in PDF format';
+            document.getElementById('input-conversation').value = `Customer: Hi, whenever I click Export PDF on my dashboard, I get an "Internal Server Error 500".\nAgent: Hi Michael, clear your browser cache.\nCustomer: I tried three browsers, cleared cache, still getting error 500.\nAgent: Let me close this ticket as resolved then, please re-open if needed.\nCustomer: It is NOT resolved! The bug is still happening!`;
+
+            const req = new Date(Date.now() - (72 * 3600 * 1000)).toISOString().slice(0, 16);
+            const upd = new Date(Date.now() - (50 * 3600 * 1000)).toISOString().slice(0, 16);
+            document.getElementById('input-requested').value = req;
+            document.getElementById('input-updated').value = upd;
+        }
+
+        async function runAiAnalysis() {
+            const conversation = document.getElementById('input-conversation').value.trim();
+            const subject = document.getElementById('input-subject').value.trim();
+
+            if (!conversation) {
+                alert('Please paste ticket information or conversation details first!');
+                return;
+            }
+
+            const btn = document.getElementById('btn-ai-analyze');
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> <span>Analyzing with Gemini AI...</span>`;
+
+            try {
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+                const systemInstruction = `You are a Senior Customer Support Quality Assurance (QA) Analyst.
+Your job is to analyze support ticket transcripts/conversations and evaluate agent performance.
+Return a valid JSON object matching the exact schema requested. Be objective, thorough, and constructive.`;
+
+                const promptText = `Analyze this support interaction:
+Subject / Description: ${subject || 'Not specified'}
+Conversation / Details:
+${conversation}
+
+Provide QA evaluation JSON containing:
+1. "missed": What was missed by the agent? (Process gaps, missed details, lack of empathy, SLA delay, wrong answer).
+2. "shouldDone": What should have been done ideally?
+3. "theme": Choose ONE from ["Escalation & SLA", "Product Knowledge", "Soft Skills & Tone", "Tool / System Usage", "Verification & Security", "First Contact Resolution", "Proper Documentation", "Perfect Handling"].
+4. "notes": Brief coaching advice or summary for the team supervisor.
+5. "suggestedPriority": Low, Medium, High, or Urgent based on tone & impact.`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: promptText }] }],
+                    systemInstruction: { parts: [{ text: systemInstruction }] },
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                "missed": { "type": "STRING" },
+                                "shouldDone": { "type": "STRING" },
+                                "theme": { "type": "STRING" },
+                                "notes": { "type": "STRING" },
+                                "suggestedPriority": { "type": "STRING" }
+                            },
+                            required: ["missed", "shouldDone", "theme", "notes"]
+                        }
+                    }
+                };
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API response status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (jsonText) {
+                    const parsed = JSON.parse(jsonText);
+                    document.getElementById('input-missed').value = parsed.missed || '';
+                    document.getElementById('input-should-done').value = parsed.shouldDone || '';
+                    if (parsed.theme) document.getElementById('input-theme').value = parsed.theme;
+                    document.getElementById('input-notes').value = parsed.notes || '';
+                    if (parsed.suggestedPriority) document.getElementById('input-priority').value = parsed.suggestedPriority;
+
+                    alert('✨ AI Co-Analyst evaluation completed! Fields have been auto-populated.');
+                }
+            } catch (err) {
+                console.error("AI Analysis error:", err);
+                alert("Failed to analyze ticket via AI. Please check connection or fill QA fields manually.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        }
+
+        function renderTicketTable() {
+            const tbody = document.getElementById('ticket-table-body');
+            const emptyState = document.getElementById('table-empty-state');
+            const search = document.getElementById('search-filter').value.toLowerCase();
+            const statusFilter = document.getElementById('status-color-filter').value;
+            const themeFilter = document.getElementById('theme-filter').value;
+
+            tbody.innerHTML = '';
+
+            const filtered = tickets.filter(t => {
+                const hrs = getHoursSinceUpdated(t.updated);
+                const slaCat = getSlaCategory(hrs);
+
+                if (statusFilter !== 'ALL' && slaCat !== statusFilter) return false;
+                if (themeFilter !== 'ALL' && t.theme !== themeFilter) return false;
+
+                if (search) {
+                    const matchStr = `${t.id} ${t.subject} ${t.assignee} ${t.requester} ${t.theme} ${t.missed} ${t.notes}`.toLowerCase();
+                    if (!matchStr.includes(search)) return false;
+                }
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            emptyState.classList.add('hidden');
+
+            filtered.forEach(t => {
+                const hrs = getHoursSinceUpdated(t.updated);
+                const age = getTicketAge(t.requested);
+                const rowClass = getSlaRowClass(hrs);
+
+                let badgeColor = 'bg-slate-100 text-slate-800';
+                if (hrs <= 48) badgeColor = 'bg-emerald-200 text-emerald-900 border-emerald-300';
+                else if (hrs <= 96) badgeColor = 'bg-amber-200 text-amber-900 border-amber-300';
+                else badgeColor = 'bg-rose-200 text-rose-900 border-rose-300';
+
+                const tr = document.createElement('tr');
+                tr.className = `${rowClass} transition hover:opacity-90 border-b border-pink-100/60 text-[12px]`;
+                tr.innerHTML = `
+                    <td class="p-3 font-mono font-bold text-pink-950">${escapeHtml(t.id)}</td>
+                    <td class="p-3 font-semibold text-slate-900">
+                        <div class="line-clamp-2">${escapeHtml(t.subject)}</div>
+                    </td>
+                    <td class="p-3 text-slate-700">${escapeHtml(t.requester)}</td>
+                    <td class="p-3 font-semibold">
+                        <span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold ${getPriorityBadgeClass(t.priority)}">
+                            ${escapeHtml(t.priority)}
+                        </span>
+                    </td>
+                    <td class="p-3 text-slate-600 whitespace-nowrap">${formatDate(t.requested)}</td>
+                    <td class="p-3 text-slate-600 whitespace-nowrap">${formatDate(t.updated)}</td>
+                    <td class="p-3 font-semibold text-pink-900">${escapeHtml(t.assignee)}</td>
+                    <td class="p-3 text-red-900"><div class="line-clamp-2">${escapeHtml(t.missed)}</div></td>
+                    <td class="p-3 text-emerald-900"><div class="line-clamp-2">${escapeHtml(t.shouldDone)}</div></td>
+                    <td class="p-3">
+                        <span class="px-2 py-1 rounded-full bg-pink-100 text-pink-800 font-medium text-[11px] whitespace-nowrap">
+                            ${escapeHtml(t.theme)}
+                        </span>
+                    </td>
+                    <td class="p-3 text-slate-700"><div class="line-clamp-2">${escapeHtml(t.notes)}</div></td>
+                    <td class="p-3 text-center font-bold">
+                        <span class="px-2.5 py-1 rounded-full text-xs border ${badgeColor}">
+                            ${hrs} hrs
+                        </span>
+                    </td>
+                    <td class="p-3 text-center font-semibold text-slate-700">${age}</td>
+                    <td class="p-3 text-center">
+                        <div class="flex items-center justify-center space-x-2">
+                            <button onclick="viewTicketModal('${t.id}')" title="View Ticket" class="p-1.5 bg-white text-pink-700 hover:bg-pink-100 rounded-lg shadow-sm border border-pink-200">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                            <button onclick="deleteTicket('${t.id}')" title="Delete Ticket" class="p-1.5 bg-white text-rose-600 hover:bg-rose-100 rounded-lg shadow-sm border border-rose-200">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderAssigneeGroupedView() {
+            const container = document.getElementById('assignee-cards-container');
+            container.innerHTML = '';
+
+            // Group tickets by Assignee
+            const groups = {};
+            tickets.forEach(t => {
+                const name = t.assignee || 'Unassigned';
+                if (!groups[name]) groups[name] = [];
+                groups[name].push(t);
+            });
+
+            const assigneeNames = Object.keys(groups);
+            if (assigneeNames.length === 0) {
+                container.innerHTML = `<p class="text-sm text-slate-500 text-center py-8">No tickets available to group.</p>`;
+                return;
+            }
+
+            assigneeNames.forEach(name => {
+                const list = groups[name];
+
+                // Count stats
+                let green = 0, yellow = 0, red = 0;
+                const themeCount = {};
+
+                list.forEach(t => {
+                    const hrs = getHoursSinceUpdated(t.updated);
+                    const cat = getSlaCategory(hrs);
+                    if (cat === 'GREEN') green++;
+                    else if (cat === 'YELLOW') yellow++;
+                    else red++;
+
+                    themeCount[t.theme] = (themeCount[t.theme] || 0) + 1;
+                });
+
+                // Top theme missed
+                const topTheme = Object.entries(themeCount).sort((a,b) => b[1] - a[1])[0]?.[0] || 'N/A';
+
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-2xl border border-pink-200 shadow-sm overflow-hidden';
+                card.innerHTML = `
+                    <div class="p-5 bg-gradient-to-r from-pink-50 to-white border-b border-pink-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 rounded-full bg-pink-600 text-white font-bold flex items-center justify-center text-lg shadow-md shadow-pink-200">
+                                ${name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <h3 class="text-base font-bold text-pink-950">${escapeHtml(name)}</h3>
+                                <p class="text-xs text-slate-500">Total Assigned: <span class="font-bold text-pink-700">${list.length}</span> tickets • Top QA Area: <span class="font-semibold text-pink-800">${escapeHtml(topTheme)}</span></p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center space-x-3 text-xs font-semibold">
+                            <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                ${green} Fresh (&le;48h)
+                            </span>
+                            <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                                ${yellow} Attention (&gt;48h)
+                            </span>
+                            <span class="px-3 py-1 rounded-full bg-rose-100 text-rose-800 border border-rose-200">
+                                ${red} Critical (&gt;96h)
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="p-4 overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-pink-100/60 text-pink-900 font-bold uppercase text-[10px]">
+                                    <th class="p-2">ID</th>
+                                    <th class="p-2">Subject</th>
+                                    <th class="p-2">Priority</th>
+                                    <th class="p-2">What Was Missed</th>
+                                    <th class="p-2">QA Theme</th>
+                                    <th class="p-2 text-center">Hours Since Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-pink-100">
+                                ${list.map(t => {
+                                    const hrs = getHoursSinceUpdated(t.updated);
+                                    const rowClass = getSlaRowClass(hrs);
+                                    return `
+                                        <tr class="${rowClass}">
+                                            <td class="p-2 font-mono font-bold text-pink-950">${escapeHtml(t.id)}</td>
+                                            <td class="p-2 font-medium">${escapeHtml(t.subject)}</td>
+                                            <td class="p-2"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${getPriorityBadgeClass(t.priority)}">${t.priority}</span></td>
+                                            <td class="p-2 text-red-900">${escapeHtml(t.missed)}</td>
+                                            <td class="p-2 font-semibold text-pink-800">${escapeHtml(t.theme)}</td>
+                                            <td class="p-2 text-center font-bold">${hrs} hrs</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function initAnalyticsCharts() {
+            updateAnalyticsDashboard();
+        }
+
+        function updateAnalyticsDashboard() {
+            let green = 0, yellow = 0, red = 0;
+            const themeCounts = {};
+            const priorityAging = { Low: 0, Medium: 0, High: 0, Urgent: 0 };
+
+            tickets.forEach(t => {
+                const hrs = getHoursSinceUpdated(t.updated);
+                const cat = getSlaCategory(hrs);
+                if (cat === 'GREEN') green++;
+                else if (cat === 'YELLOW') yellow++;
+                else red++;
+
+                themeCounts[t.theme] = (themeCounts[t.theme] || 0) + 1;
+                if (hrs > 48) {
+                    priorityAging[t.priority] = (priorityAging[t.priority] || 0) + 1;
+                }
+            });
+
+            document.getElementById('analytics-total').innerText = tickets.length;
+            document.getElementById('analytics-green').innerText = green;
+            document.getElementById('analytics-yellow').innerText = yellow;
+            document.getElementById('analytics-red').innerText = red;
+
+            // Render Theme Donut Chart
+            const themeCtx = document.getElementById('themeChart').getContext('2d');
+            if (themeChartInstance) themeChartInstance.destroy();
+
+            themeChartInstance = new Chart(themeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(themeCounts),
+                    datasets: [{
+                        data: Object.values(themeCounts),
+                        backgroundColor: [
+                            '#ec4899', '#f43f5e', '#8b5cf6', '#3b82f6',
+                            '#10b981', '#f59e0b', '#06b6d4', '#64748b'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { font: { size: 11 } } }
+                    }
+                }
+            });
+
+            // Render Priority Bar Chart
+            const prioCtx = document.getElementById('priorityChart').getContext('2d');
+            if (priorityChartInstance) priorityChartInstance.destroy();
+
+            priorityChartInstance = new Chart(prioCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Low', 'Medium', 'High', 'Urgent'],
+                    datasets: [{
+                        label: 'Tickets > 48 Hours Un-updated',
+                        data: [priorityAging.Low, priorityAging.Medium, priorityAging.High, priorityAging.Urgent],
+                        backgroundColor: '#db2777'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                    }
+                }
+            });
+        }
+
+        function exportToExcel() {
+            if (tickets.length === 0) {
+                alert('No ticket data to export.');
+                return;
+            }
+
+            // Headers requested:
+            // ID, Subject, Requester, Priority, Requested (Date opened), Updated (Date last update), Assignee, What was missed, What should have been done, QA Theme, QA Notes, Hours Since Updated, Ticket age
+            const headers = [
+                'ID', 'Subject', 'Requester', 'Priority',
+                'Requested (Date opened)', 'Updated (Date last update)',
+                'Assignee', 'What was missed', 'What should have been done',
+                'QA Theme', 'QA Notes', 'Hours Since Updated', 'Ticket age'
+            ];
+
+            const rows = [headers];
+
+            tickets.forEach(t => {
+                const hrs = getHoursSinceUpdated(t.updated);
+                const age = getTicketAge(t.requested);
+                rows.push([
+                    t.id,
+                    t.subject,
+                    t.requester,
+                    t.priority,
+                    formatDate(t.requested),
+                    formatDate(t.updated),
+                    t.assignee,
+                    t.missed,
+                    t.shouldDone,
+                    t.theme,
+                    t.notes,
+                    hrs,
+                    age
+                ]);
+            });
+
+            // Build Sheet JS worksheet
+            const ws = XLSX.utils.aoa_to_sheet(rows);
+
+            // Apply styling (Row colors per ticket SLA rule)
+            // Green: <=48h -> Light Green (#D4EDDA / RGB C6F6D5)
+            // Yellow: >48-96h -> Light Yellow (#FFF3CD / RGB FEFCBF)
+            // Red: >96h -> Light Red (#F8D7DA / RGB FED7D7)
+            const range = XLSX.utils.decode_range(ws['!ref']);
+
+            for (let R = range.s.r; R <= range.e.r; ++R) {
+                let rowBgColor = "FFFFFF"; // Default white header / row
+
+                if (R === 0) {
+                    // Header row styling
+                    rowBgColor = "831843"; // Dark pink header
+                } else {
+                    const ticketData = tickets[R - 1];
+                    const hrs = getHoursSinceUpdated(ticketData.updated);
+                    const cat = getSlaCategory(hrs);
+
+                    if (cat === 'GREEN') rowBgColor = "D1E7DD"; // Excel Soft Green
+                    else if (cat === 'YELLOW') rowBgColor = "FFF3CD"; // Excel Soft Yellow
+                    else rowBgColor = "F8D7DA"; // Excel Soft Red
+                }
+
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                    if (!ws[cellAddress]) continue;
+
+                    ws[cellAddress].s = {
+                        fill: {
+                            patternType: "solid",
+                            fgColor: { rgb: rowBgColor }
+                        },
+                        font: {
+                            name: "Calibri",
+                            sz: R === 0 ? 11 : 10,
+                            bold: R === 0,
+                            color: { rgb: R === 0 ? "FFFFFF" : "000000" }
+                        },
+                        border: {
+                            top: { style: "thin", color: { rgb: "E2E8F0" } },
+                            bottom: { style: "thin", color: { rgb: "E2E8F0" } },
+                            left: { style: "thin", color: { rgb: "E2E8F0" } },
+                            right: { style: "thin", color: { rgb: "E2E8F0" } }
+                        }
+                    };
+                }
+            }
+
+            // Set column widths
+            ws['!cols'] = [
+                { wch: 12 }, { wch: 35 }, { wch: 20 }, { wch: 12 },
+                { wch: 20 }, { wch: 20 }, { wch: 18 }, { wch: 30 },
+                { wch: 30 }, { wch: 20 }, { wch: 30 }, { wch: 20 }, { wch: 15 }
+            ];
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "QA Ticket Analysis");
+
+            const fileName = `QA_Ticket_Analysis_${new Date().toISOString().slice(0, 10)}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+        }
+
+        function toggleChatDrawer() {
+            const drawer = document.getElementById('chat-drawer');
+            drawer.classList.toggle('translate-x-full');
+        }
+
+        function sendQuickPrompt(promptText) {
+            document.getElementById('chat-input').value = promptText;
+            handleChatMessageSubmit(new Event('submit'));
+        }
+
+        async function handleChatMessageSubmit(e) {
+            e.preventDefault();
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            // Render User Bubble
+            appendChatMessage('user', message);
+            input.value = '';
+
+            // Render Typing Indicator
+            const typingId = appendChatMessage('ai', 'Thinking and analyzing ticket repository...');
+
+            try {
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+                const systemInstruction = `You are an expert Senior Quality Assurance (QA) Co-Analyst.
+You have access to the user's current support ticket QA analysis data.
+Answer questions constructively, provide coaching templates, summarize trends, or offer action items.
+
+CURRENT TICKET DATA CONTEXT:
+${JSON.stringify(tickets, null, 2)}`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: message }] }],
+                    systemInstruction: { parts: [{ text: systemInstruction }] }
+                };
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                const aiResponse = result.candidates?.[0]?.content?.parts?.[0]?.text || "I was unable to process that query. Please try rephrasing.";
+
+                // Remove typing placeholder and render response
+                removeChatMessage(typingId);
+                appendChatMessage('ai', aiResponse);
+
+            } catch (err) {
+                console.error("Chat API error:", err);
+                removeChatMessage(typingId);
+                appendChatMessage('ai', "Sorry, I encountered an error connecting to the AI Co-Analyst service.");
+            }
+        }
+
+        function appendChatMessage(sender, text) {
+            const container = document.getElementById('chat-messages');
+            const id = 'msg-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+
+            const div = document.createElement('div');
+            div.id = id;
+            div.className = `flex gap-2.5 ${sender === 'user' ? 'justify-end' : ''}`;
+
+            if (sender === 'user') {
+                div.innerHTML = `
+                    <div class="bg-pink-600 text-white p-3 rounded-2xl rounded-tr-none text-xs max-w-[85%] shadow-sm">
+                        <p class="font-bold text-[10px] text-pink-200 mb-0.5">You</p>
+                        <p class="leading-relaxed">${escapeHtml(text)}</p>
+                    </div>
+                `;
+            } else {
+                div.innerHTML = `
+                    <div class="w-7 h-7 rounded-full bg-pink-600 text-white flex items-center justify-center flex-shrink-0 text-xs mt-1">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <div class="bg-white p-3 rounded-2xl rounded-tl-none border border-pink-200 text-slate-700 shadow-sm max-w-[85%] space-y-1">
+                        <p class="font-bold text-pink-900 text-[10px]">Co-QA Analyst AI</p>
+                        <div class="leading-relaxed whitespace-pre-line">${escapeHtml(text)}</div>
+                    </div>
+                `;
+            }
+
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            return id;
+        }
+
+        function removeChatMessage(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        function viewTicketModal(ticketId) {
+            const t = tickets.find(x => x.id === ticketId);
+            if (!t) return;
+
+            const modal = document.getElementById('ticket-modal');
+            document.getElementById('modal-ticket-id').innerText = t.id;
+            document.getElementById('modal-ticket-subject').innerText = t.subject;
+
+            const hrs = getHoursSinceUpdated(t.updated);
+            const age = getTicketAge(t.requested);
+
+            document.getElementById('modal-body').innerHTML = `
+                <div class="grid grid-cols-2 gap-3 bg-pink-50 p-3 rounded-xl">
+                    <div><span class="font-semibold text-slate-500">Assignee:</span> <strong class="text-pink-900">${escapeHtml(t.assignee)}</strong></div>
+                    <div><span class="font-semibold text-slate-500">Requester:</span> ${escapeHtml(t.requester)}</div>
+                    <div><span class="font-semibold text-slate-500">Priority:</span> ${escapeHtml(t.priority)}</div>
+                    <div><span class="font-semibold text-slate-500">QA Theme:</span> ${escapeHtml(t.theme)}</div>
+                    <div><span class="font-semibold text-slate-500">Hours Un-updated:</span> <strong class="text-pink-700">${hrs} hrs</strong></div>
+                    <div><span class="font-semibold text-slate-500">Total Age:</span> ${age}</div>
+                </div>
+
+                <div class="space-y-1">
+                    <h4 class="font-bold text-red-700">What was missed:</h4>
+                    <p class="p-2.5 bg-red-50 border border-red-200 rounded-lg text-slate-800">${escapeHtml(t.missed)}</p>
+                </div>
+
+                <div class="space-y-1">
+                    <h4 class="font-bold text-emerald-700">What should have been done:</h4>
+                    <p class="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-slate-800">${escapeHtml(t.shouldDone)}</p>
+                </div>
+
+                <div class="space-y-1">
+                    <h4 class="font-bold text-pink-900">QA Coaching Notes:</h4>
+                    <p class="p-2.5 bg-pink-50 border border-pink-200 rounded-lg text-slate-800">${escapeHtml(t.notes)}</p>
+                </div>
+
+                ${t.conversation ? `
+                <div class="space-y-1">
+                    <h4 class="font-bold text-slate-700">Full Interaction Log / Conversation:</h4>
+                    <pre class="p-3 bg-slate-900 text-slate-100 rounded-lg font-mono text-[11px] leading-relaxed overflow-x-auto max-h-48">${escapeHtml(t.conversation)}</pre>
+                </div>` : ''}
+            `;
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('ticket-modal').classList.add('hidden');
+        }
+
+        function deleteTicket(ticketId) {
+            if (confirm(`Are you sure you want to delete ticket ${ticketId}?`)) {
+                tickets = tickets.filter(t => t.id !== ticketId);
+                saveTicketsToStorage();
+                renderTicketTable();
+            }
+        }
+
+        function resetFilters() {
+            document.getElementById('search-filter').value = '';
+            document.getElementById('status-color-filter').value = 'ALL';
+            document.getElementById('theme-filter').value = 'ALL';
+            renderTicketTable();
+        }
+
+        function getPriorityBadgeClass(priority) {
+            switch(priority) {
+                case 'Urgent': return 'bg-rose-100 text-rose-800 border border-rose-300';
+                case 'High': return 'bg-orange-100 text-orange-800 border border-orange-300';
+                case 'Medium': return 'bg-amber-100 text-amber-800 border border-amber-300';
+                default: return 'bg-slate-100 text-slate-700 border border-slate-300';
+            }
+        }
+
+        function formatDate(dateIso) {
+            if (!dateIso) return 'N/A';
+            const d = new Date(dateIso);
+            if (isNaN(d.getTime())) return dateIso;
+            return d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
